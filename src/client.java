@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
@@ -31,11 +32,15 @@ public class client {
     public BitSet[] keygen(int s, int r){
         SecureRandom random = new SecureRandom();
         BitSet[] masterKey = new BitSet[r];
-        int upperBound = (int) Math.pow(2,s);
+        //int upperBound = (int) Math.pow(2,s);
 
         for(int i=0;i<r;i++){
-            int kInt = random.nextInt(upperBound);
-            BitSet k = toBinary(kInt, s);
+            BitSet k = new BitSet(s);
+            for(int j=0;j<s;j++){
+                boolean bit = random.nextBoolean();
+                k.set(j,bit);
+            }
+
 
             masterKey[i] = k;
         }
@@ -85,21 +90,15 @@ public class client {
     }
 
     public File buildIndex(String Did, BitSet[] key, String[] words, int u){
-        Set bloomFilter = new HashSet<Integer>();
+        Set bloomFilter = new HashSet<BigInteger>();
         int s = key[0].size();
 
         for(String word : words){
             BitSet[] Tw = trapdoor(key, word);
             for(BitSet Twi : Tw){
                 byte[] y = calculateHMAC(Did.getBytes(), Twi.toByteArray());
+                bloomFilter.add(new BigInteger(y));
 
-                BitSet yBits = BitSet.valueOf(y);
-                yBits.clear(s, yBits.length());
-
-                //adds the index of each 1-element to the bloomfilter set
-                for (int j = yBits.nextSetBit(0); j != -1; j = yBits.nextSetBit(j + 1)) {
-                    bloomFilter.add(j);
-                }
             }
         }
 
@@ -109,14 +108,7 @@ public class client {
             try {
                 random.nextBytes(bytes);
                 byte[] randomHash = calculateHash(bytes);
-
-                byte[] slice = Arrays.copyOfRange(randomHash, 0, s/8 + 1);
-
-                String randomHashString = toHexString(slice);
-                //if(!Arrays.stream(bloomFilter).anyMatch(randomHashString::equals)){
-                    //bloomFilter[i] = randomHashString;
-                    //i++;
-                //}
+                bloomFilter.add(new BigInteger(randomHash));
 
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();

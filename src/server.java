@@ -1,4 +1,5 @@
 import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,13 +55,13 @@ public class server {
         }
     }
 
-    public String[] readBloomFilter(File BloomFilter){
+    public BigInteger[] readBloomFilter(File BloomFilter){
         String name = BloomFilter.getName();
         ObjectInputStream inputStream = null;
-        String[] bf = null;
+        BigInteger[] bf = null;
         try {
             inputStream = new ObjectInputStream(new FileInputStream(BloomFilter));
-            bf = (String[])inputStream.readObject();
+            bf = (BigInteger[])inputStream.readObject();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -69,6 +70,8 @@ public class server {
 
         return bf;
     }
+
+
     public void upload(String userID, File file, File bloomFilter){
 
         Path userPath = Paths.get(path + userID);
