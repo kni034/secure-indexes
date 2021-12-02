@@ -1,23 +1,31 @@
 import java.io.File;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.BitSet;
 
 public class main {
+    private static final String path = "./resources/";
 
     public static void main(String[]args){
 
         client alice = new client();
+        server server = new server();
 
         BitSet[] key = alice.keygen(512,3);
         System.out.println(Arrays.deepToString(key));
 
-        BitSet[] door = alice.trapdoor(key, "aaaaa");
+        BigInteger[] door = alice.trapdoor(key, "aaa");
         System.out.println(Arrays.deepToString(door));
 
-        String[] a = {"abc", "asd"};
 
-        File f = alice.buildIndex("navn", key, a, 10);
-        System.out.println(f.getName());
+        File f = new File(path +"test.txt");
+
+        File bf = alice.buildIndex("navn", key, f, 50);
+        System.out.println(bf.getName());
+
+        boolean contains = server.search(bf, door);
+        System.out.println(contains);
+
         
     }
 }

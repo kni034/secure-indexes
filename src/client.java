@@ -1,9 +1,6 @@
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -17,7 +14,7 @@ public class client {
     public client(){
 
     }
-
+    /*
     public static BitSet toBinary(int x, int len) {
         final BitSet buff = new BitSet(len);
 
@@ -28,6 +25,8 @@ public class client {
         }
         return buff;
     }
+
+     */
 
     public BitSet[] keygen(int s, int r){
         SecureRandom random = new SecureRandom();
@@ -47,6 +46,7 @@ public class client {
         return masterKey;
     }
 
+    /*
     private static String toHexString(byte[] bytes) {
         Formatter formatter = new Formatter();
         for (byte b : bytes) {
@@ -55,7 +55,9 @@ public class client {
         return formatter.toString();
     }
 
+     */
 
+    /*
     public static byte[] calculateHMAC(byte[] data, byte[] key)
     {
         String HMAC_SHA512 = "HmacSHA512";
@@ -71,34 +73,59 @@ public class client {
         return mac.doFinal(data);
     }
 
+     */
+    /*
     public static byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
         byte[] messageDigest = md.digest(data);
         return messageDigest;
     }
 
-    public BitSet[] trapdoor(BitSet[] Kpriv, String w){
-        BitSet[] Tw = new BitSet[Kpriv.length];
+     */
+
+    public BigInteger[] trapdoor(BitSet[] Kpriv, String w){
+        BigInteger[] Tw = new BigInteger[Kpriv.length];
 
         for (int i = 0; i < Kpriv.length; i++) {
-            byte[] xiByte = calculateHMAC(w.getBytes(), Kpriv[i].toByteArray());
-            BitSet xi = BitSet.valueOf(xiByte);
+            byte[] xiByte = CryptoHelper.calculateHMAC(w.getBytes(), Kpriv[i].toByteArray());
+            BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
 
         return Tw;
     }
 
-    public File buildIndex(String Did, BitSet[] key, String[] words, int u){
+    public File buildIndex(String Did, BitSet[] key, File file, int u){
         Set bloomFilter = new HashSet<BigInteger>();
         int s = key[0].size();
 
-        for(String word : words){
-            BitSet[] Tw = trapdoor(key, word);
-            for(BitSet Twi : Tw){
-                byte[] y = calculateHMAC(Did.getBytes(), Twi.toByteArray());
-                bloomFilter.add(new BigInteger(y));
+        ArrayList<String> allWords = new ArrayList<>();
 
+        try {
+            Scanner fileReader = new Scanner(file);
+            fileReader.hasNextLine();
+
+            while (fileReader.hasNextLine()) {
+                String data = fileReader.nextLine();
+                String[] words = data.split(" ");
+
+                for (String word : words) {
+                    allWords.add(word);
+                }
+            }
+
+            fileReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String[] words = new String[allWords.size()];
+        words = allWords.toArray(words);
+
+
+        for(String word : words){
+            BigInteger[] Tw = trapdoor(key, word);
+            for(BigInteger Twi : Tw){
+                bloomFilter.add(Twi);
             }
         }
 
@@ -107,13 +134,16 @@ public class client {
             SecureRandom random = new SecureRandom();
             try {
                 random.nextBytes(bytes);
-                byte[] randomHash = calculateHash(bytes);
+                byte[] randomHash = CryptoHelper.calculateHash(bytes);
                 bloomFilter.add(new BigInteger(randomHash));
 
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
             }
         }
+
+        //BigInteger[] bf = bloomFilter.toArray(BigInteger);
+
 
         System.out.println(Arrays.toString(bloomFilter.toArray()));
 

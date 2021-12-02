@@ -4,19 +4,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
+import java.util.*;
 
 public class server {
     private static final String path = "./resources/serverStorage";
-    private HashMap<String, ArrayList<Object>> table;
+    //private HashMap<String, ArrayList<Object>> table;
 
     public server(){
 
 
     }
 
+    /*
     public void writeTable(HashMap<String, ArrayList<Object>> table){
         File tableFile = new File(path + "table");
 
@@ -34,6 +33,9 @@ public class server {
 
     }
 
+     */
+
+    /*
     public void setTable(File table){
 
 
@@ -48,20 +50,23 @@ public class server {
             ois.close();
             fis.close();
 
-            this.table = mapInFile;
+            //this.table = mapInFile;
 
         } catch(Exception e) {
             e.printStackTrace();
         }
     }
 
-    public BigInteger[] readBloomFilter(File BloomFilter){
-        String name = BloomFilter.getName();
+     */
+
+    public HashSet<BigInteger> readBloomFilter(File BloomFilter){
+        //String name = BloomFilter.getName();
+
         ObjectInputStream inputStream = null;
-        BigInteger[] bf = null;
+        HashSet<BigInteger> bf = new HashSet<>();
         try {
             inputStream = new ObjectInputStream(new FileInputStream(BloomFilter));
-            bf = (BigInteger[])inputStream.readObject();
+            bf = (HashSet<BigInteger>)inputStream.readObject();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -84,16 +89,24 @@ public class server {
             Files.move(originalPath, userPath.resolve(originalPath.getFileName()),
                     StandardCopyOption.REPLACE_EXISTING);
 
+            Files.move(bfPath, userPath.resolve(originalPath.getFileName()+".bf"),
+                    StandardCopyOption.REPLACE_EXISTING);
         }
         catch (Exception e){
             e.printStackTrace();
         }
 
-        ArrayList<Object> info = new ArrayList<>();
-        info.add(readBloomFilter(bloomFilter));
-        info.add(userPath);
-
-        table.put(file.getName(),info);
-
     }
+
+    public boolean search(File bloomFilter, BigInteger[] trapdoor){
+        HashSet<BigInteger> bf = readBloomFilter(bloomFilter);
+        for(BigInteger xi : trapdoor){
+            if(!bf.contains(xi)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
 }
