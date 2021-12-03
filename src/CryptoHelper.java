@@ -34,6 +34,72 @@ public class CryptoHelper {
 
 
 
+
+
+    public byte[] convertStringToBinary(String input) {
+
+        StringBuilder result = new StringBuilder();
+        char[] chars = input.toCharArray();
+        for (char aChar : chars) {
+            result.append(
+                    String.format("%8s", Integer.toBinaryString(aChar))   // char -> int, auto-cast
+                            .replaceAll(" ", "0")                         // zero pads
+            );
+        }
+        byte[] byteResult = new byte[input.length()*8];
+
+        for(int i=0;i<byteResult.length;i++) {
+            // -48 because char "0" = byte 48, and char "1" = byte 49
+            byteResult[i] = (byte) result.charAt(i);
+            byteResult[i] -= 48;
+        }
+        return byteResult;
+
+    }
+
+    private String getFileChecksum(MessageDigest digest, File file) throws IOException
+    {
+        //Get file input stream for reading the file content
+        FileInputStream fis = new FileInputStream(file);
+
+        //Create byte array to read data in chunks
+        byte[] byteArray = new byte[1024];
+        int bytesCount = 0;
+
+        //Read file data and update in message digest
+        while ((bytesCount = fis.read(byteArray)) != -1) {
+            digest.update(byteArray, 0, bytesCount);
+        };
+
+        //close the stream; We don't need it now.
+        fis.close();
+
+        //Get the hash's bytes
+        byte[] bytes = digest.digest();
+
+        //This bytes[] has bytes in decimal format;
+        //Convert it to hexadecimal format
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i< bytes.length ;i++)
+        {
+            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+        }
+
+        //return complete hash
+        return sb.toString();
+    }
+
+    public String fileChecksum(File file){
+        try {
+            MessageDigest shaDigest = MessageDigest.getInstance("SHA-512");
+            return getFileChecksum(shaDigest, file);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public void encryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
 
         try {
@@ -79,70 +145,6 @@ public class CryptoHelper {
         }
     }
 
-    public byte[] convertStringToBinary(String input) {
-
-        StringBuilder result = new StringBuilder();
-        char[] chars = input.toCharArray();
-        for (char aChar : chars) {
-            result.append(
-                    String.format("%8s", Integer.toBinaryString(aChar))   // char -> int, auto-cast
-                            .replaceAll(" ", "0")                         // zero pads
-            );
-        }
-        byte[] byteResult = new byte[input.length()*8];
-
-        for(int i=0;i<byteResult.length;i++) {
-            // -48 because char "0" = byte 48, and char "1" = byte 49
-            byteResult[i] = (byte) result.charAt(i);
-            byteResult[i] -= 48;
-        }
-        return byteResult;
-
-    }
-
-    private static String getFileChecksum(MessageDigest digest, File file) throws IOException
-    {
-        //Get file input stream for reading the file content
-        FileInputStream fis = new FileInputStream(file);
-
-        //Create byte array to read data in chunks
-        byte[] byteArray = new byte[1024];
-        int bytesCount = 0;
-
-        //Read file data and update in message digest
-        while ((bytesCount = fis.read(byteArray)) != -1) {
-            digest.update(byteArray, 0, bytesCount);
-        };
-
-        //close the stream; We don't need it now.
-        fis.close();
-
-        //Get the hash's bytes
-        byte[] bytes = digest.digest();
-
-        //This bytes[] has bytes in decimal format;
-        //Convert it to hexadecimal format
-        StringBuilder sb = new StringBuilder();
-        for(int i=0; i< bytes.length ;i++)
-        {
-            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-        }
-
-        //return complete hash
-        return sb.toString();
-    }
-
-    public String fileChecksum(File file){
-        try {
-            MessageDigest shaDigest = MessageDigest.getInstance("SHA-512");
-            return getFileChecksum(shaDigest, file);
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public void decryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
         try {
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -185,7 +187,7 @@ public class CryptoHelper {
         }
     }
 
-    public static byte[] calculateHMAC(byte[] data, byte[] key)
+    public byte[] calculateHMAC(byte[] data, byte[] key)
     {
         String HMAC_SHA512 = "HmacSHA512";
         SecretKeySpec secretKeySpec = new SecretKeySpec(key, HMAC_SHA512);
@@ -201,10 +203,44 @@ public class CryptoHelper {
     }
 
 
-    public static byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
+    public byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
         byte[] messageDigest = md.digest(data);
         return messageDigest;
+    }
+
+    public String sha512Hash(String input){
+
+
+        try {
+            // getInstance() method is called with algorithm SHA-512
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+
+            // digest() method is called
+            // to calculate message digest of the input string
+            // returned as array of byte
+            byte[] messageDigest = md.digest(input.getBytes());
+
+            // Convert byte array into signum representation
+            BigInteger no = new BigInteger(1, messageDigest);
+
+            // Convert message digest into hex value
+            String hashtext = no.toString(16);
+
+            // Add preceding 0s to make it 32 bit
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+
+            // return the HashText
+            return hashtext;
+        }
+
+        // For specifying wrong message digest algorithms
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
 

@@ -7,26 +7,36 @@ public class main {
     private static final String path = "./resources/";
 
     public static void main(String[]args){
+        server server = new server(512,3 , 50);
 
-        client alice = new client();
-        server server = new server();
-
-        BitSet[] key = alice.keygen(512,3);
-        System.out.println(Arrays.deepToString(key));
-
-        BigInteger[] door = alice.trapdoor(key, "aaa");
-        System.out.println(Arrays.deepToString(door));
-
+        client alice = new client("Alice","password123 :)", server.getS(), server.getR());
+        client bob = new client("Bobbert", "12345", server.getS(), server.getR());
 
         File f = new File(path +"test.txt");
 
-        File bf = alice.buildIndex("navn", key, f, 50);
-        System.out.println(bf.getName());
+        uploadProtocol(alice, server, f);
 
-        boolean contains = server.search(bf, door);
-        System.out.println(contains);
-
+        searchProtocol(alice, server, "abc");
+        searchProtocol(bob, server, "abc");
+        searchProtocol(alice, server, "abc");
         
+    }
+
+    public static void uploadProtocol(client client, server server,File file){
+
+        File bloomFilter = client.buildIndex(file, server.getUpperbound());
+        File encrypted = client.encryptFile(file);
+        server.upload(client.getName(), encrypted, bloomFilter);
+    }
+
+    public static void searchProtocol(client client, server server, String searchword){
+
+        BigInteger[] trapdoor = client.trapdoor(searchword);
+        File[] files = server.searchAllFiles(client.getName(), trapdoor);
+        for(File f:files){
+            client.decryptFile(f);
+        }
+
     }
 }
 

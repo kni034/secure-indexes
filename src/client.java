@@ -1,4 +1,5 @@
 import javax.crypto.Mac;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.math.BigInteger;
@@ -8,30 +9,40 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public class client {
-
+    private String name;
     private static final String tmpFolder = "./resources/";
+    private BitSet[] Kpriv;
+    private int s;
+    private int r;
+    private CryptoHelper ch = new CryptoHelper();
+    private String masterKey;
+    private IvParameterSpec iv;
+    private SecretKeySpec secretKeySpec;
 
-    public client(){
 
-    }
-    /*
-    public static BitSet toBinary(int x, int len) {
-        final BitSet buff = new BitSet(len);
+    public client(String name, String password, int s, int r){
+        this.name = name;
+        this.s = s;
+        this.r = r;
+        this.masterKey = ch.sha512Hash(name + password);
+        secretKeySpec = new SecretKeySpec(masterKey.substring(0,16).getBytes(), "AES");
 
-        for (int i = len - 1; i >= 0 ; i--)
-        {
-            int mask = 1 << i;
-            buff.set(len - 1 - i,len - 1 - i, (x & mask) != 0 ? true : false);
+        try {
+            iv = new IvParameterSpec(masterKey.substring(16,32).getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        return buff;
+
+        this.Kpriv = keygen(s,r,masterKey);
     }
 
-     */
+    public String getName(){
+        return name;
+    }
 
-    public BitSet[] keygen(int s, int r){
-        SecureRandom random = new SecureRandom();
-        BitSet[] masterKey = new BitSet[r];
-        //int upperBound = (int) Math.pow(2,s);
+    public BitSet[] keygen(int s, int r, String masterKey){
+        SecureRandom random = new SecureRandom(masterKey.getBytes());
+        BitSet[] Kpriv = new BitSet[r];
 
         for(int i=0;i<r;i++){
             BitSet k = new BitSet(s);
@@ -41,53 +52,17 @@ public class client {
             }
 
 
-            masterKey[i] = k;
+            Kpriv[i] = k;
         }
-        return masterKey;
+        return Kpriv;
     }
 
-    /*
-    private static String toHexString(byte[] bytes) {
-        Formatter formatter = new Formatter();
-        for (byte b : bytes) {
-            formatter.format("%02x", b);
-        }
-        return formatter.toString();
-    }
 
-     */
-
-    /*
-    public static byte[] calculateHMAC(byte[] data, byte[] key)
-    {
-        String HMAC_SHA512 = "HmacSHA512";
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key, HMAC_SHA512);
-        Mac mac = null;
-        try {
-            mac = Mac.getInstance(HMAC_SHA512);
-            mac.init(secretKeySpec);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            e.printStackTrace();
-        }
-
-        return mac.doFinal(data);
-    }
-
-     */
-    /*
-    public static byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("SHA-512");
-        byte[] messageDigest = md.digest(data);
-        return messageDigest;
-    }
-
-     */
-
-    public BigInteger[] trapdoor(BitSet[] Kpriv, String w){
+    public BigInteger[] trapdoor(String w){
         BigInteger[] Tw = new BigInteger[Kpriv.length];
 
         for (int i = 0; i < Kpriv.length; i++) {
-            byte[] xiByte = CryptoHelper.calculateHMAC(w.getBytes(), Kpriv[i].toByteArray());
+            byte[] xiByte = ch.calculateHMAC(w.getBytes(), Kpriv[i].toByteArray());
             BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
@@ -95,9 +70,26 @@ public class client {
         return Tw;
     }
 
-    public File buildIndex(String Did, BitSet[] key, File file, int u){
+    public File encryptFile(File file){
+
+        File encrypted = new File(tmpFolder + file.getName()+".enc");
+        ch.encryptFile(file, encrypted, iv, secretKeySpec);
+
+        return encrypted;
+    }
+
+    public File decryptFile(File file){
+        File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4) + ".dec"); //adds .dec instead of removing extension, used for testing
+        //File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4));
+        ch.decryptFile(file, clear, iv, secretKeySpec);
+
+        return clear;
+    }
+
+    public File buildIndex(File file, int u){
+        String Did = getName();
         Set bloomFilter = new HashSet<BigInteger>();
-        int s = key[0].size();
+        int s = Kpriv[0].size();
 
         ArrayList<String> allWords = new ArrayList<>();
 
@@ -123,7 +115,7 @@ public class client {
 
 
         for(String word : words){
-            BigInteger[] Tw = trapdoor(key, word);
+            BigInteger[] Tw = trapdoor(word);
             for(BigInteger Twi : Tw){
                 bloomFilter.add(Twi);
             }
@@ -134,15 +126,13 @@ public class client {
             SecureRandom random = new SecureRandom();
             try {
                 random.nextBytes(bytes);
-                byte[] randomHash = CryptoHelper.calculateHash(bytes);
+                byte[] randomHash = ch.calculateHash(bytes);
                 bloomFilter.add(new BigInteger(randomHash));
 
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
             }
         }
-
-        //BigInteger[] bf = bloomFilter.toArray(BigInteger);
 
 
         System.out.println(Arrays.toString(bloomFilter.toArray()));

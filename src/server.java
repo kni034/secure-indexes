@@ -7,57 +7,30 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class server {
-    private static final String path = "./resources/serverStorage";
-    //private HashMap<String, ArrayList<Object>> table;
+    private static final String path = "./resources/serverStorage/";
+    private int upperbound;
+    private int s;
+    private int r;
 
-    public server(){
-
-
+    public server(int s,int r, int upperbound){
+        this.s = s;
+        this.r = r;
+        this.upperbound = upperbound;
     }
 
-    /*
-    public void writeTable(HashMap<String, ArrayList<Object>> table){
-        File tableFile = new File(path + "table");
-
-        try {
-            FileOutputStream fos = new FileOutputStream(tableFile);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(table);
-            oos.flush();
-            oos.close();
-            fos.close();
-
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-
+    public int getUpperbound() {
+        return upperbound;
     }
 
-     */
-
-    /*
-    public void setTable(File table){
-
-
-        try {
-            File toRead = table;
-
-            FileInputStream fis = new FileInputStream(toRead);
-            ObjectInputStream ois = new ObjectInputStream(fis);
-
-            HashMap<String,ArrayList<Object>> mapInFile=(HashMap<String,ArrayList<Object>>)ois.readObject();
-
-            ois.close();
-            fis.close();
-
-            //this.table = mapInFile;
-
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
+    public int getS(){
+        return s;
     }
 
-     */
+    public int getR(){
+        return r;
+    }
+
+
 
     public HashSet<BigInteger> readBloomFilter(File BloomFilter){
         //String name = BloomFilter.getName();
@@ -98,7 +71,31 @@ public class server {
 
     }
 
-    public boolean search(File bloomFilter, BigInteger[] trapdoor){
+    public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
+        String userPath = path + userID;
+        File userDir = new File(userPath);
+        userDir.mkdirs();
+        File[] files = userDir.listFiles();
+
+        ArrayList<File> returnFiles = new ArrayList<>();
+
+        for(File f : files){
+            if (f.getName().endsWith(".bf")){
+                if(searchBF(f, trapdoor)){
+                    returnFiles.add(new File(f.getPath().substring(0,f.getPath().length()-3))); //removes ".bf" from the file name and adds the original file to be returned
+                }
+            }
+
+        }
+
+        File[] returnArray = returnFiles.toArray(new File[0]);
+        return returnArray;
+
+
+
+    }
+
+    private boolean searchBF(File bloomFilter, BigInteger[] trapdoor){
         HashSet<BigInteger> bf = readBloomFilter(bloomFilter);
         for(BigInteger xi : trapdoor){
             if(!bf.contains(xi)){
