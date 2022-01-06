@@ -1,16 +1,13 @@
-import javax.crypto.Mac;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class client {
     private String name;
-    private static final String tmpFolder = "./resources/";
+    private static final String tmpFolder = "./src/main/resources/";
     private BitSet[] Kpriv;
     private int s;
     private int r;
@@ -24,7 +21,7 @@ public class client {
         this.name = name;
         this.s = s;
         this.r = r;
-        this.masterKey = ch.sha512Hash(name + password);
+        this.masterKey = ch.sha512Hash(name + password);    //salt?
         secretKeySpec = new SecretKeySpec(masterKey.substring(0,16).getBytes(), "AES");
 
         try {
@@ -56,6 +53,30 @@ public class client {
         }
         return Kpriv;
     }
+
+    public boolean checkError(String w, File file){
+        try {
+            Scanner fileReader = new Scanner(file);
+            fileReader.hasNextLine();
+
+            while (fileReader.hasNextLine()) {
+                String data = fileReader.nextLine();
+                String[] words = data.split(" ");
+
+                for (String word : words) {
+                    if(word.equals(w)){
+                        return true;
+                    }
+                }
+            }
+
+            fileReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 
 
     public BigInteger[] trapdoor(String w){
@@ -91,7 +112,7 @@ public class client {
         Set bloomFilter = new HashSet<BigInteger>();
         int s = Kpriv[0].size();
 
-        ArrayList<String> allWords = new ArrayList<>();
+        ArrayList<String> allWords = new ArrayList<>(); //remove duplicates
 
         try {
             Scanner fileReader = new Scanner(file);
@@ -121,7 +142,9 @@ public class client {
             }
         }
 
-        while(bloomFilter.size() < u){
+        //(upperbound u - unique words v) * number of hashes r
+        //u = number of trapdoors(words), not entries in bloomfilter. (number of entries = u*r)
+        while(bloomFilter.size() < u*r){
             byte[] bytes = new byte[s/8];
             SecureRandom random = new SecureRandom();
             try {

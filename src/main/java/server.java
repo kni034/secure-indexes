@@ -7,7 +7,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class server {
-    private static final String path = "./resources/serverStorage/";
+    private static final String path = "./src/main/resources/serverStorage/";
     private int upperbound;
     private int s;
     private int r;
@@ -30,10 +30,7 @@ public class server {
         return r;
     }
 
-
-
     public HashSet<BigInteger> readBloomFilter(File BloomFilter){
-        //String name = BloomFilter.getName();
 
         ObjectInputStream inputStream = null;
         HashSet<BigInteger> bf = new HashSet<>();
@@ -45,10 +42,8 @@ public class server {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-
         return bf;
     }
-
 
     public void upload(String userID, File file, File bloomFilter){
 
@@ -71,6 +66,15 @@ public class server {
 
     }
 
+    /*
+    private HashMap<Path,Path> readLookup(String userID){
+        Path lookupPath = Paths.get(path + userID +".lookup");
+
+
+    }
+
+     */
+
     public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
         String userPath = path + userID;
         File userDir = new File(userPath);
@@ -82,17 +86,14 @@ public class server {
         for(File f : files){
             if (f.getName().endsWith(".bf")){
                 if(searchBF(f, trapdoor)){
+                    //TODO: use hashmap (lookup)
                     returnFiles.add(new File(f.getPath().substring(0,f.getPath().length()-3))); //removes ".bf" from the file name and adds the original file to be returned
                 }
             }
-
         }
 
         File[] returnArray = returnFiles.toArray(new File[0]);
         return returnArray;
-
-
-
     }
 
     private boolean searchBF(File bloomFilter, BigInteger[] trapdoor){
@@ -105,5 +106,20 @@ public class server {
         return true;
     }
 
+    //not a part of the algorithm, only used to clean up serer storage
+    public void deleteFile(String userName,String fileName){
+        String userPath = path + userName;
+
+        try{
+            File f = new File(userPath + fileName);
+            File bf = new File(userPath + fileName+".bf");
+
+            f.delete();
+            bf.delete();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 
 }
