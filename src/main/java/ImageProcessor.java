@@ -23,21 +23,6 @@ public class ImageProcessor {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(f);
 
-            /*
-            for (Directory directory : metadata.getDirectories()) {
-
-                for (Tag tag : directory.getTags()) {
-
-                    System.out.println(tag);
-                }
-            }
-
-
-
-             */
-
-
-
             for (Directory directory : metadata.getDirectories()) {
 
                 if(directory.getName().equals("GPS")){
@@ -68,6 +53,7 @@ public class ImageProcessor {
                     double lat = DMStoDecimal(Integer.parseInt(latDMS[0]), Integer.parseInt(latDMS[1]), Double.parseDouble(latDMS[2]), latDirection);
 
                     String[] places = getData(lat,lon);
+
                     return  places;
 
                 }
@@ -106,9 +92,9 @@ public class ImageProcessor {
     private double DMStoDecimal(int degrees, int minutes, double seconds, String direction) {
 
         double decimalMin = minutes / 60.0;
-        double decimalSec = minutes / 3600.0;
+        double decimalSec = seconds / 3600.0;
 
-        double decimal = degrees + decimalMin + decimalSec;
+        double decimal = Math.abs(degrees) + decimalMin + decimalSec;
 
         if(direction.equals("S") || direction.equals("W")){
             decimal *= -1.0;

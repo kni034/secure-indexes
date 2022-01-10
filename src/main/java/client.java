@@ -38,7 +38,7 @@ public class client {
     }
 
     public BitSet[] keygen(int s, int r, String masterKey){
-        SecureRandom random = new SecureRandom(masterKey.getBytes());
+        Random random = new Random(masterKey.hashCode());
         BitSet[] Kpriv = new BitSet[r];
 
         for(int i=0;i<r;i++){
@@ -78,15 +78,18 @@ public class client {
     }
 
 
-
     public BigInteger[] trapdoor(String w){
         BigInteger[] Tw = new BigInteger[Kpriv.length];
 
+        String formattedWord = formatSearchWord(w);
+
+
         for (int i = 0; i < Kpriv.length; i++) {
-            byte[] xiByte = ch.calculateHMAC(w.getBytes(), Kpriv[i].toByteArray());
+            byte[] xiByte = ch.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
             BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
+        //System.out.println(Arrays.toString(Tw));
 
         return Tw;
     }
@@ -100,8 +103,8 @@ public class client {
     }
 
     public File decryptFile(File file){
-        File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4) + ".dec"); //adds .dec instead of removing extension, used for testing
-        //File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4));
+        //File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4) + ".dec"); //adds .dec instead of removing extension, used for testing
+        File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4));
         ch.decryptFile(file, clear, iv, secretKeySpec);
 
         return clear;
@@ -134,6 +137,11 @@ public class client {
         return words;
     }
 
+    public String formatSearchWord(String word){
+        word = word.replaceAll(" ", "");
+        return word;
+    }
+
     public File buildIndex(File file, int u, boolean image){
         String[] words;
         if(image){
@@ -151,7 +159,7 @@ public class client {
     }
 
     public File buildIndexWordsProvided(File file, int u, String[] words){
-        String Did = getName();
+        String Did = file.getName();
         Set bloomFilter = new HashSet<BigInteger>();
 
         for(String word : words){
@@ -176,7 +184,7 @@ public class client {
             }
         }
 
-        System.out.println(Arrays.toString(bloomFilter.toArray()));
+        //System.out.println(Arrays.toString(bloomFilter.toArray()));
 
         File f = new File(tmpFolder + Did);
         ObjectOutputStream outputStream = null;

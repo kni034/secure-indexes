@@ -11,15 +11,23 @@ public class main {
 
     public static void main(String[]args){
         ImageProcessor ip = new ImageProcessor();
-
-
         File dir = new File(path + "/allImages/");
 
+        server server = new server(512,3 , 50);
+        client alice = new client("Alice","password123 :)", server.getS(), server.getR());
+        //client bob = new client("Bobbert", "12345", server.getS(), server.getR());
+
+        File f = new File(dir + "/040.JPG");
+        //uploadProtocol(alice, server, f);
+
+
+        searchProtocol(alice, server, "Florida");
+        /*
 
         for(File f: dir.listFiles()){
-            String[] places = ip.readMetaData(f);
-
-            System.out.println(f.getName() + Arrays.toString(places));
+            //String[] places = ip.readMetaData(f);
+            uploadProtocol(alice, server, f);
+            //System.out.println(f.getName() + Arrays.toString(places));
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -29,6 +37,9 @@ public class main {
 
 
 
+         */
+
+        //
 
 
 
@@ -73,18 +84,22 @@ public class main {
         server.upload(client.getName(), encrypted, bloomFilter);
     }
 
-    public static void searchProtocol(client client, server server, String searchword){
+    public static void searchProtocol(client client, server server, String searchWord){
 
-        BigInteger[] trapdoor = client.trapdoor(searchword);
+        BigInteger[] trapdoor = client.trapdoor(searchWord);
         File[] files = server.searchAllFiles(client.getName(), trapdoor);
         System.out.println(files.length);
 
         for(File f:files){
             File dec = client.decryptFile(f);
 
+            //TODO: replace with check from api
+            /*
             if(!client.checkError(searchword, dec)){
                 dec.delete();
             }
+
+             */
         }
     }
 
