@@ -1,12 +1,54 @@
+import com.drew.metadata.Directory;
+
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class main {
     private static final String path = "./src/main/resources/";
 
     public static void main(String[]args){
-        File f = new File(path +"image1.jpg");
+        ImageProcessor ip = new ImageProcessor();
+
+
+        File dir = new File(path + "/allImages/");
+
+
+        for(File f: dir.listFiles()){
+            String[] places = ip.readMetaData(f);
+
+            System.out.println(f.getName() + Arrays.toString(places));
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
+
+
+
+        /*
+
+        File f = new File(path + "/allImages/"+ "IMG_8346.JPG");
+
+        String[] places = ip.readMetaData(f);
+
+        for(String s: places){
+            System.out.println(s);
+        }
+
+
+         */
+
+
+
+
+
         /*
         server server = new server(512,3 , 50);
 
@@ -21,21 +63,12 @@ public class main {
 
          */
 
-        ImageProcessor ip = new ImageProcessor();
-        try {
-            ip.getData(60.38246497935409, 5.329261886818714);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        // ip.readMetaData(f);
 
-
-        
     }
 
     public static void uploadProtocol(client client, server server,File file){
 
-        File bloomFilter = client.buildIndex(file, server.getUpperbound());
+        File bloomFilter = client.buildIndex(file, server.getUpperbound(), true);
         File encrypted = client.encryptFile(file);
         server.upload(client.getName(), encrypted, bloomFilter);
     }

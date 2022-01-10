@@ -12,37 +12,77 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class ImageProcessor {
 
 
-    public void readMetaData(File f) {
+    public String[] readMetaData(File f) {
 
         try {
-
-
-            System.out.println("nå!");
             Metadata metadata = ImageMetadataReader.readMetadata(f);
 
+            /*
             for (Directory directory : metadata.getDirectories()) {
-
 
                 for (Tag tag : directory.getTags()) {
 
                     System.out.println(tag);
-                    System.out.println(tag.getDescription());
+                }
+            }
+
+
+
+             */
+
+
+
+            for (Directory directory : metadata.getDirectories()) {
+
+                if(directory.getName().equals("GPS")){
+                    HashMap<String,String> coordinates = new HashMap<>();
+                    for (Tag tag : directory.getTags()) {
+                        coordinates.put(tag.getTagName(), tag.getDescription());
+                        //System.out.println(tag);
+                    }
+
+                    //format and convert longtitude from format DMS to decimal
+                    String lonString = coordinates.get("GPS Longitude");
+                    lonString = lonString.replace("°", "");
+                    lonString = lonString.replace("'", "");
+                    lonString = lonString.replace("\"", "");
+                    //lonString = lonString.replace(".", ",");
+                    String[] lonDMS = lonString.split(" ");
+                    String lonDirection = coordinates.get("GPS Longitude Ref");
+                    double lon = DMStoDecimal(Integer.parseInt(lonDMS[0]), Integer.parseInt(lonDMS[1]), Double.parseDouble(lonDMS[2]), lonDirection);
+
+                    //format and convert latitude from format DMS to decimal
+                    String latString = coordinates.get("GPS Latitude");
+                    latString = latString.replace("°", "");
+                    latString = latString.replace("'", "");
+                    latString = latString.replace("\"", "");
+                    //latString = latString.replace(".", ",");
+                    String[] latDMS = latString.split(" ");
+                    String latDirection = coordinates.get("GPS Latitude Ref");
+                    double lat = DMStoDecimal(Integer.parseInt(latDMS[0]), Integer.parseInt(latDMS[1]), Double.parseDouble(latDMS[2]), latDirection);
+
+                    String[] places = getData(lat,lon);
+                    return  places;
+
                 }
 
 
             }
-        } catch (ImageProcessingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+
+        } catch (Exception e) {
+            //System.out.println(f.getName() + " has no location :(");
         }
+        return new String[0];
     }
 
-    public void getData(double lat, double lon) throws UnsupportedEncodingException {
+    private String[] getData(double lat, double lon) throws UnsupportedEncodingException {
         Dotenv dotenv = Dotenv.load();
 
         String host = "https://eu1.locationiq.com/v1/reverse.php";
@@ -53,40 +93,28 @@ public class ImageProcessor {
         String format = "&format=json";
 
         String url = host + key + latLon + format;
-        System.out.println(url);
+        //System.out.println(url);
 
         HttpResponse<JsonNode> resp = Unirest.get(url).asJson();
-        System.out.println(resp.getHeaders());
-        System.out.println(resp.getBody().toPrettyString());
+        //System.out.println(resp.getHeaders());
+        //System.out.println(resp.getBody().toPrettyString());
 
-        System.out.println(resp.getBody().getObject().get("display_name"));
+        String[] result = resp.getBody().getObject().get("display_name").toString().split(",");
+        return result;
     }
-    /*
-    public void getAddress(double lat, double lng) {
-        Geocoder geocoder = new Geocoder(HomeActivity.mContext, Locale.getDefault());
-        try {
-            List<Address> addresses = geocoder.getFromLocation(lat, lng, 1);
-            Address obj = addresses.get(0);
-            String add = obj.getAddressLine(0);
-            add = add + "\n" + obj.getCountryName();
-            add = add + "\n" + obj.getCountryCode();
-            add = add + "\n" + obj.getAdminArea();
-            add = add + "\n" + obj.getPostalCode();
-            add = add + "\n" + obj.getSubAdminArea();
-            add = add + "\n" + obj.getLocality();
-            add = add + "\n" + obj.getSubThoroughfare();
 
-            Log.v("IGA", "Address" + add);
-            // Toast.makeText(this, "Address=>" + add,
-            // Toast.LENGTH_SHORT).show();
+    private double DMStoDecimal(int degrees, int minutes, double seconds, String direction) {
 
-            // TennisAppActivity.showDialog(add);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        double decimalMin = minutes / 60.0;
+        double decimalSec = minutes / 3600.0;
+
+        double decimal = degrees + decimalMin + decimalSec;
+
+        if(direction.equals("S") || direction.equals("W")){
+            decimal *= -1.0;
         }
+
+        return decimal;
     }
 
-     */
 }

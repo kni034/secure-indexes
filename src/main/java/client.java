@@ -107,11 +107,9 @@ public class client {
         return clear;
     }
 
-    public File buildIndex(File file, int u){
-        String Did = getName();
-        Set bloomFilter = new HashSet<BigInteger>();
-        int s = Kpriv[0].size();
 
+
+    private String[] readWords(File file){
         ArrayList<String> allWords = new ArrayList<>(); //remove duplicates
 
         try {
@@ -133,7 +131,28 @@ public class client {
         }
         String[] words = new String[allWords.size()];
         words = allWords.toArray(words);
+        return words;
+    }
 
+    public File buildIndex(File file, int u, boolean image){
+        String[] words;
+        if(image){
+            ImageProcessor ip = new ImageProcessor();
+            words = ip.readMetaData(file);
+        }
+        else {
+            words = readWords(file);
+        }
+        return buildIndexWordsProvided(file, u, words);
+    }
+
+    public File buildIndex(File file, int u, String[] words){
+        return buildIndexWordsProvided(file, u, words);
+    }
+
+    public File buildIndexWordsProvided(File file, int u, String[] words){
+        String Did = getName();
+        Set bloomFilter = new HashSet<BigInteger>();
 
         for(String word : words){
             BigInteger[] Tw = trapdoor(word);
@@ -157,7 +176,6 @@ public class client {
             }
         }
 
-
         System.out.println(Arrays.toString(bloomFilter.toArray()));
 
         File f = new File(tmpFolder + Did);
@@ -171,7 +189,5 @@ public class client {
 
         return f;
     }
-
-
 
 }
