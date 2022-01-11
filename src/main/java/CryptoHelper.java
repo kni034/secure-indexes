@@ -11,13 +11,36 @@ import java.util.Base64;
 
 public class CryptoHelper {
 
-    public CryptoHelper(){
 
+
+    public static String encryptString(String input, SecretKey key,
+                                 IvParameterSpec iv) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
+
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+        byte[] cipherText = cipher.doFinal(input.getBytes());
+        String s = Base64.getEncoder().encodeToString(cipherText);
+        return s.replace("/", "_"); //replaces / with _ to be compatible with filenames
+    }
+
+    public static String decryptString(String cipherText, SecretKey key,
+                                 IvParameterSpec iv) throws NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
+
+        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        cipherText = cipherText.replace("_", "/"); //we know that all occurrences of _ should be / because base64 encoding is used during encryption
+        byte[] plainText = cipher.doFinal(Base64.getDecoder()
+                .decode(cipherText));
+        return new String(plainText);
     }
 
 
     //converts each byte to binary and xors with the corresponding byte in the other array to get a new byte array
-    public byte[] XORByteArrays(byte[] array1, byte[] array2){
+    public static byte[] XORByteArrays(byte[] array1, byte[] array2){
         byte[] result = new byte[array1.length];
         for(int i=0;i<array1.length;i++){
             String binary = "";
@@ -36,7 +59,7 @@ public class CryptoHelper {
 
 
 
-    public byte[] convertStringToBinary(String input) {
+    public static byte[] convertStringToBinary(String input) {
 
         StringBuilder result = new StringBuilder();
         char[] chars = input.toCharArray();
@@ -57,7 +80,7 @@ public class CryptoHelper {
 
     }
 
-    private String getFileChecksum(MessageDigest digest, File file) throws IOException
+    private static String getFileChecksum(MessageDigest digest, File file) throws IOException
     {
         //Get file input stream for reading the file content
         FileInputStream fis = new FileInputStream(file);
@@ -89,7 +112,7 @@ public class CryptoHelper {
         return sb.toString();
     }
 
-    public String fileChecksum(File file){
+    public static String fileChecksum(File file){
         try {
             MessageDigest shaDigest = MessageDigest.getInstance("SHA-512");
             return getFileChecksum(shaDigest, file);
@@ -100,7 +123,7 @@ public class CryptoHelper {
         return null;
     }
 
-    public void encryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
+    public static void encryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
 
         try {
 
@@ -145,7 +168,7 @@ public class CryptoHelper {
         }
     }
 
-    public void decryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
+    public static void decryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
         try {
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);
@@ -187,7 +210,7 @@ public class CryptoHelper {
         }
     }
 
-    public byte[] calculateHMAC(byte[] data, byte[] key)
+    public static byte[] calculateHMAC(byte[] data, byte[] key)
     {
         String HMAC_SHA512 = "HmacSHA512";
         SecretKeySpec secretKeySpec = new SecretKeySpec(key, HMAC_SHA512);
@@ -203,13 +226,13 @@ public class CryptoHelper {
     }
 
 
-    public byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
+    public static byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
         byte[] messageDigest = md.digest(data);
         return messageDigest;
     }
 
-    public String sha512Hash(String input){
+    public static String sha512Hash(String input){
 
 
         try {

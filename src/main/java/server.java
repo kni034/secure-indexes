@@ -16,6 +16,17 @@ public class server {
         this.s = s;
         this.r = r;
         this.upperbound = upperbound;
+
+
+        Path userPath = Paths.get(path);
+        try {
+            Files.createDirectories(userPath);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+
     }
 
     public int getUpperbound() {
@@ -51,29 +62,25 @@ public class server {
         Path originalPath = Paths.get(file.getPath());
         Path bfPath = Paths.get(bloomFilter.getPath());
 
+        String newBfPath = userPath + "/" + bloomFilter.getName();
+        String newImagePath = userPath + "/" + file.getName();
+
         try {
             Files.createDirectories(userPath);
 
             Files.move(originalPath, userPath.resolve(originalPath.getFileName()),
                     StandardCopyOption.REPLACE_EXISTING);
 
-            Files.move(bfPath, userPath.resolve(originalPath.getFileName()+".bf"),
+            Files.move(bfPath, userPath.resolve(bfPath.getFileName()),
                     StandardCopyOption.REPLACE_EXISTING);
         }
         catch (Exception e){
             e.printStackTrace();
         }
-
+        updateLookup(userID, newBfPath, newImagePath);
     }
 
-    /*
-    private HashMap<Path,Path> readLookup(String userID){
-        Path lookupPath = Paths.get(path + userID +".lookup");
 
-
-    }
-
-     */
 
     public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
         String userPath = path + userID;
@@ -82,13 +89,12 @@ public class server {
         File[] files = userDir.listFiles();
 
         ArrayList<File> returnFiles = new ArrayList<>();
+        HashMap<String, String> lookup = readLookup(userID);
 
-        for(File f : files){
-            if (f.getName().endsWith(".bf")){
-                if(searchBF(f, trapdoor)){
-                    //TODO: use hashmap (lookup)
-                    returnFiles.add(new File(f.getPath().substring(0,f.getPath().length()-3))); //removes ".bf" from the file name and adds the original file to be returned
-                }
+        for(String s: lookup.keySet()){
+            String bfPath = lookup.get(s);
+            if(searchBF(new File(bfPath), trapdoor)){
+                returnFiles.add(new File(s));
             }
         }
 
@@ -106,9 +112,62 @@ public class server {
         return true;
     }
 
+    public void updateLookup(String userID, String bloomFilter, String imageFile){
+
+        HashMap<String, String> lookup = readLookup(userID);
+        lookup.put(imageFile, bloomFilter);
+        writeLookup(userID, lookup);
+    }
+
+    public HashMap<String,String> readLookup(String userID) {
+
+        File toFile = new File(path + userID + "/" + ".lookup");
+        HashMap<String, String> lookup;
+        try {
+
+            File toRead = toFile;
+
+            FileInputStream fis = new FileInputStream(toRead);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+
+            HashMap<String,String> mapInFile=(HashMap<String,String>)ois.readObject();
+
+            ois.close();
+            fis.close();
+
+            lookup = mapInFile;
+            return lookup;
+
+        } catch(Exception e) {
+            System.out.println("user has no lookup file, creating new");
+        }
+        return new HashMap<String, String>();
+    }
+
+
+
+    public void writeLookup(String userID, HashMap<String,String> lookup) {
+
+        File lookupFile = new File(path + userID + "/" + ".lookup");
+
+        try {
+            FileOutputStream fos = new FileOutputStream(lookupFile);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(lookup);
+            oos.flush();
+            oos.close();
+            fos.close();
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
     //not a part of the algorithm, only used to clean up serer storage
-    public void deleteFile(String userName,String fileName){
-        String userPath = path + userName;
+    public void deleteFile(String userID,String fileName){
+        String userPath = path + userID;
 
         try{
             File f = new File(userPath + fileName);

@@ -11,7 +11,6 @@ public class client {
     private BitSet[] Kpriv;
     private int s;
     private int r;
-    private CryptoHelper ch = new CryptoHelper();
     private String masterKey;
     private IvParameterSpec iv;
     private SecretKeySpec secretKeySpec;
@@ -21,7 +20,7 @@ public class client {
         this.name = name;
         this.s = s;
         this.r = r;
-        this.masterKey = ch.sha512Hash(name + password);    //salt?
+        this.masterKey = CryptoHelper.sha512Hash(name + password);    //salt?
         secretKeySpec = new SecretKeySpec(masterKey.substring(0,16).getBytes(), "AES");
 
         try {
@@ -55,25 +54,16 @@ public class client {
     }
 
     public boolean checkError(String w, File file){
-        try {
-            Scanner fileReader = new Scanner(file);
-            fileReader.hasNextLine();
+        ImageProcessor ip = new ImageProcessor();
+        String[] words = ip.readMetaData(file);
 
-            while (fileReader.hasNextLine()) {
-                String data = fileReader.nextLine();
-                String[] words = data.split(" ");
-
-                for (String word : words) {
-                    if(word.equals(w)){
-                        return true;
-                    }
-                }
+        for (String word : words) {
+            word = formatSearchWord(word);
+            if(word.equals(w)){
+                return true;
             }
-
-            fileReader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+
         return false;
     }
 
@@ -82,10 +72,10 @@ public class client {
         BigInteger[] Tw = new BigInteger[Kpriv.length];
 
         String formattedWord = formatSearchWord(w);
-
+        System.out.println(formattedWord);
 
         for (int i = 0; i < Kpriv.length; i++) {
-            byte[] xiByte = ch.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
+            byte[] xiByte = CryptoHelper.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
             BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
@@ -95,17 +85,31 @@ public class client {
     }
 
     public File encryptFile(File file){
-
-        File encrypted = new File(tmpFolder + file.getName()+".enc");
-        ch.encryptFile(file, encrypted, iv, secretKeySpec);
+        String newFileName = file.getName();
+        try {
+            newFileName = CryptoHelper.encryptString(file.getName(), secretKeySpec, iv);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        File encrypted = new File(tmpFolder + newFileName);
+        CryptoHelper.encryptFile(file, encrypted, iv, secretKeySpec);
 
         return encrypted;
     }
 
-    public File decryptFile(File file){
-        //File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4) + ".dec"); //adds .dec instead of removing extension, used for testing
-        File clear = new File(tmpFolder + file.getName().substring(0,file.getName().length()-4));
-        ch.decryptFile(file, clear, iv, secretKeySpec);
+    public File decryptFile(File file) {
+
+        String originalFileName = file.getName();
+        try{
+            originalFileName = CryptoHelper.decryptString(file.getName(), secretKeySpec, iv);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        File clear = new File(tmpFolder + originalFileName);
+        CryptoHelper.decryptFile(file, clear, iv, secretKeySpec);
 
         return clear;
     }
@@ -139,6 +143,7 @@ public class client {
 
     public String formatSearchWord(String word){
         word = word.replaceAll(" ", "");
+        word = word.toLowerCase();
         return word;
     }
 
@@ -159,7 +164,7 @@ public class client {
     }
 
     public File buildIndexWordsProvided(File file, int u, String[] words){
-        String Did = file.getName();
+        String Did = file.getName() + ".bf";
         Set bloomFilter = new HashSet<BigInteger>();
 
         for(String word : words){
@@ -176,7 +181,7 @@ public class client {
             SecureRandom random = new SecureRandom();
             try {
                 random.nextBytes(bytes);
-                byte[] randomHash = ch.calculateHash(bytes);
+                byte[] randomHash = CryptoHelper.calculateHash(bytes);
                 bloomFilter.add(new BigInteger(randomHash));
 
             } catch (NoSuchAlgorithmException e) {
@@ -197,5 +202,7 @@ public class client {
 
         return f;
     }
+
+
 
 }

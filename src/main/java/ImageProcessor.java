@@ -1,5 +1,4 @@
 import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
@@ -9,63 +8,143 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 public class ImageProcessor {
 
 
     public String[] readMetaData(File f) {
 
+        String[] places = new String[0];
+        String[] dates = new String[0];
+        String[] fileNames = getFileNames(f);
+        Metadata metadata = null;
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(f);
+            metadata = ImageMetadataReader.readMetadata(f);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
 
             for (Directory directory : metadata.getDirectories()) {
-
-                if(directory.getName().equals("GPS")){
-                    HashMap<String,String> coordinates = new HashMap<>();
-                    for (Tag tag : directory.getTags()) {
-                        coordinates.put(tag.getTagName(), tag.getDescription());
-                        //System.out.println(tag);
+                try {
+                    if (directory.getName().equals("GPS")) {
+                        places = getLocation(directory);
                     }
-
-                    //format and convert longtitude from format DMS to decimal
-                    String lonString = coordinates.get("GPS Longitude");
-                    lonString = lonString.replace("°", "");
-                    lonString = lonString.replace("'", "");
-                    lonString = lonString.replace("\"", "");
-                    //lonString = lonString.replace(".", ",");
-                    String[] lonDMS = lonString.split(" ");
-                    String lonDirection = coordinates.get("GPS Longitude Ref");
-                    double lon = DMStoDecimal(Integer.parseInt(lonDMS[0]), Integer.parseInt(lonDMS[1]), Double.parseDouble(lonDMS[2]), lonDirection);
-
-                    //format and convert latitude from format DMS to decimal
-                    String latString = coordinates.get("GPS Latitude");
-                    latString = latString.replace("°", "");
-                    latString = latString.replace("'", "");
-                    latString = latString.replace("\"", "");
-                    //latString = latString.replace(".", ",");
-                    String[] latDMS = latString.split(" ");
-                    String latDirection = coordinates.get("GPS Latitude Ref");
-                    double lat = DMStoDecimal(Integer.parseInt(latDMS[0]), Integer.parseInt(latDMS[1]), Double.parseDouble(latDMS[2]), latDirection);
-
-                    String[] places = getData(lat,lon);
-
-                    return  places;
-
+                }
+                catch (Exception e){
+                    e.printStackTrace();
                 }
 
-
+                if(directory.getName().equals("Exif SubIFD")){
+                    dates = getDates(directory);
+                }
             }
 
 
-        } catch (Exception e) {
-            //System.out.println(f.getName() + " has no location :(");
+        ArrayList<String> allWords = new ArrayList<>();
+        if(places.length == 0){
+            System.out.println("Error adding GPS data for image: "+ f.getName());
         }
-        return new String[0];
+        else {
+            for (String s : places) {
+                allWords.add(s);
+            }
+        }
+
+        if(dates.length == 0){
+            System.out.println("Error adding dates for image: "+ f.getName());
+        }
+        else {
+            for(String s: dates){
+                allWords.add(s);
+            }
+        }
+
+        if(fileNames.length == 0){
+            System.out.println("Error adding fileNames for image: "+ f.getName());
+        }
+        else {
+            for (String s : fileNames) {
+                allWords.add(s);
+            }
+        }
+
+        String[] words = allWords.toArray(new String[0]);
+
+        return words;
+    }
+
+    private String[] getFileNames(File f){
+        String name = f.getName();
+        String nameWithoutExtension;
+
+        nameWithoutExtension = name.split("\\.")[0];
+
+        if(!name.equals(nameWithoutExtension)){
+            return new String[]{name, nameWithoutExtension};
+        }
+        return new String[]{name};
+
+    }
+
+    private String[] getDates(Directory directory){
+        HashMap<String,String> map = new HashMap<>();
+        for (Tag tag : directory.getTags()) {
+            map.put(tag.getTagName(), tag.getDescription());
+            //System.out.println(tag.getTagName() +" "+ tag.getDescription());
+        }
+
+        String[] date = map.get("Date/Time Original").split(" ")[0].split(":");
+        LocalDate localdate = LocalDate.of(Integer.parseInt(date[0]), Integer.parseInt(date[1]), Integer.parseInt(date[2]));
+        String year = "y" + date[0];
+        String month = "m"+date[1];
+        String day = "d"+date[2];
+        String weekday = localdate.getDayOfWeek().toString();
+
+        String ymdDate = day + month + year;
+
+        return new String[]{year, month, day, weekday, ymdDate};
+    }
+
+    private String[] getLocation(Directory directory) throws UnsupportedEncodingException {
+        HashMap<String,String> coordinates = new HashMap<>();
+        for (Tag tag : directory.getTags()) {
+            coordinates.put(tag.getTagName(), tag.getDescription());
+            //System.out.println(tag);
+        }
+
+        //format and convert longtitude from format DMS to decimal
+        String lonString = coordinates.get("GPS Longitude");
+        lonString = lonString.replace("°", "");
+        lonString = lonString.replace("'", "");
+        lonString = lonString.replace("\"", "");
+        //lonString = lonString.replace(".", ",");
+        String[] lonDMS = lonString.split(" ");
+        String lonDirection = coordinates.get("GPS Longitude Ref");
+        double lon = DMStoDecimal(Integer.parseInt(lonDMS[0]), Integer.parseInt(lonDMS[1]), Double.parseDouble(lonDMS[2]), lonDirection);
+
+        //format and convert latitude from format DMS to decimal
+        String latString = coordinates.get("GPS Latitude");
+        latString = latString.replace("°", "");
+        latString = latString.replace("'", "");
+        latString = latString.replace("\"", "");
+        //latString = latString.replace(".", ",");
+        String[] latDMS = latString.split(" ");
+        String latDirection = coordinates.get("GPS Latitude Ref");
+        double lat = DMStoDecimal(Integer.parseInt(latDMS[0]), Integer.parseInt(latDMS[1]), Double.parseDouble(latDMS[2]), latDirection);
+
+        String[] places = getData(lat,lon);
+
+        return  places;
+
+
     }
 
     private String[] getData(double lat, double lon) throws UnsupportedEncodingException {
