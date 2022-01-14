@@ -33,6 +33,7 @@ public class ImageProcessor {
         }
 
             for (Directory directory : metadata.getDirectories()) {
+
                 try {
                     if (directory.getName().equals("GPS")) {
                         places = getLocation(directory);
@@ -107,10 +108,30 @@ public class ImageProcessor {
         String month = "m"+date[1];
         String day = "d"+date[2];
         String weekday = localdate.getDayOfWeek().toString();
+        String ymDate = month + year;
+        String dmDate = day + month;
+        String seasonN = "";
+        String seasonE = "";
+        if(date[1].equals("01") || date[1].equals("02") || date[1].equals("12")){
+            seasonN = "Vinter";
+            seasonE = "Winter";
+        }
+        if(date[1].equals("03") || date[1].equals("04") || date[1].equals("05")){
+            seasonN = "Vår";
+            seasonE = "Spring";
+        }
+        if(date[1].equals("06") || date[1].equals("07") || date[1].equals("08")){
+            seasonN = "Sommer";
+            seasonE = "Summer";
+        }
+        if(date[1].equals("09") || date[1].equals("10") || date[1].equals("11")){
+            seasonN = "Høst";
+            seasonE = "Autumn";
+        }
 
         String ymdDate = day + month + year;
 
-        return new String[]{year, month, day, weekday, ymdDate};
+        return new String[]{year, month, day, weekday, ymdDate, ymDate, dmDate, seasonN, seasonE};
     }
 
     private String[] getLocation(Directory directory) throws UnsupportedEncodingException {

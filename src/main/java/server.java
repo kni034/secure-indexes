@@ -17,7 +17,6 @@ public class server {
         this.r = r;
         this.upperbound = upperbound;
 
-
         Path userPath = Paths.get(path);
         try {
             Files.createDirectories(userPath);
@@ -25,8 +24,6 @@ public class server {
         catch (Exception e){
             e.printStackTrace();
         }
-
-
     }
 
     public int getUpperbound() {
@@ -81,7 +78,7 @@ public class server {
     }
 
 
-
+    //download
     public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
         String userPath = path + userID;
         File userDir = new File(userPath);
@@ -99,6 +96,7 @@ public class server {
         }
 
         File[] returnArray = returnFiles.toArray(new File[0]);
+        System.out.println("Downloaded " + returnArray.length + " files from " + userID);
         return returnArray;
     }
 
@@ -164,17 +162,18 @@ public class server {
     }
 
 
+    //removes file, its bloomfilter and the connection in the lookup
+    public void deleteFile(String userID, File file){
 
-    //not a part of the algorithm, only used to clean up serer storage
-    public void deleteFile(String userID,String fileName){
-        String userPath = path + userID;
+        HashMap<String, String> lookup = readLookup(userID);
 
         try{
-            File f = new File(userPath + fileName);
-            File bf = new File(userPath + fileName+".bf");
-
-            f.delete();
+            String filePath = file.getPath();
+            File bf = new File(lookup.get(filePath));
+            file.delete();
             bf.delete();
+            lookup.remove(filePath);
+            writeLookup(userID, lookup);
         }
         catch (Exception e){
             e.printStackTrace();

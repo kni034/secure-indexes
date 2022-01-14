@@ -1,13 +1,21 @@
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.swing.plaf.multi.MultiSeparatorUI;
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.*;
+import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class client {
     private String name;
     private static final String tmpFolder = "./src/main/resources/";
+    private String userPath;
     private BitSet[] Kpriv;
     private int s;
     private int r;
@@ -23,6 +31,13 @@ public class client {
         this.masterKey = CryptoHelper.sha512Hash(name + password);    //salt?
         secretKeySpec = new SecretKeySpec(masterKey.substring(0,16).getBytes(), "AES");
 
+        Path up = Paths.get(tmpFolder + "/clientStorage/" + name);
+        try {
+            Files.createDirectories(up);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
         try {
             iv = new IvParameterSpec(masterKey.substring(16,32).getBytes("UTF-8"));
         } catch (UnsupportedEncodingException e) {
@@ -31,6 +46,102 @@ public class client {
 
         this.Kpriv = keygen(s,r,masterKey);
     }
+    public void rangeSearch(server server, String from, String to){
+        from = formatSearchWord(from);
+        to = formatSearchWord(to);
+
+
+        //splits the date search word and removes an empty string element at position 0 f the array, for both inputs
+        String[] fromNumbersOnly = Arrays.asList(from.split("y|m|d")).subList(1, from.split("y|m|d").length).toArray(new String[0]);
+        String[] toNumbersOnly = Arrays.asList(to.split("y|m|d")).subList(1, to.split("y|m|d").length).toArray(new String[0]);
+
+        //remove numbers from the strings
+        String fromFormatString = from.replaceAll("\\d", "");
+        String toFormatString = to.replaceAll("\\d", "");
+
+        if(!fromFormatString.equals(toFormatString)){
+            System.out.println("Date formats must be the same for both ends of the range");
+            return;
+        }
+
+
+        boolean containsYear = fromFormatString.contains("y");
+        boolean containsMonth = fromFormatString.contains("m");
+        boolean containsDay = fromFormatString.contains("d");
+
+        int fromYear = containsYear ? Integer.parseInt(fromNumbersOnly[2]) : 1;
+        int fromMonth = containsMonth ? Integer.parseInt(fromNumbersOnly[1]) : 1;
+        int fromDay = containsDay ? Integer.parseInt(fromNumbersOnly[0]) : 1;
+
+        int toYear = containsYear ? Integer.parseInt(toNumbersOnly[2]) : 1;
+        int toMonth = containsMonth ? Integer.parseInt(toNumbersOnly[1]) : 1;
+        int toDay = containsDay ? Integer.parseInt(toNumbersOnly[0]) : 1;
+
+        LocalDate fromDate = LocalDate.of(fromYear, fromMonth, fromDay);
+        LocalDate toDate = LocalDate.of(toYear, toMonth, toDay);
+
+        if(toDate.isBefore(fromDate)){
+            LocalDate temp = fromDate;
+            fromDate = toDate;
+            toDate = temp;
+        }
+
+        List<LocalDate> datesBetween = fromDate.datesUntil(toDate).collect(Collectors.toList());
+        HashSet<String> datesBetweenString = new HashSet<String>();
+
+        for(LocalDate date : datesBetween){
+
+            String yearString = containsYear ? "y"+ date.getYear() : "";
+
+            String monthString = containsMonth ? "m"+ String.format("%02d", date.getMonthValue()) : "";
+            String dayString = containsDay ? "d"+ String.format("%02d", date.getDayOfMonth()) : "";
+
+            datesBetweenString.add(dayString + monthString + yearString);
+        }
+        Iterator<String> dateIter = datesBetweenString.iterator();
+        while(dateIter.hasNext()){
+            search(server, dateIter.next());
+        }
+
+
+    }
+
+    public void search(server server, String searchWord){
+
+        BigInteger[] trapdoor = trapdoor(searchWord);
+        File[] files = server.searchAllFiles(getName(), trapdoor);
+
+        for(File f:files){
+            File dec = decryptFile(f);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if(!checkError(searchWord, dec)){
+                dec.delete();
+            }
+
+            Path userPath = Paths.get(tmpFolder + "/clientStorage/" + name);
+            Path originalPath = Paths.get(dec.getPath());
+
+            try {
+                Files.createDirectories(userPath);
+
+                Files.move(originalPath, userPath.resolve(originalPath.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+
+
+        }
+
+    }
+
 
     public String getName(){
         return name;
@@ -72,7 +183,7 @@ public class client {
         BigInteger[] Tw = new BigInteger[Kpriv.length];
 
         String formattedWord = formatSearchWord(w);
-        System.out.println(formattedWord);
+        //System.out.println(formattedWord);
 
         for (int i = 0; i < Kpriv.length; i++) {
             byte[] xiByte = CryptoHelper.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());

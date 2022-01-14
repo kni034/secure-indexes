@@ -17,16 +17,18 @@ public class main {
 
         server server = new server(512,3 , 50);
         client alice = new client("Alice","password123 :)", server.getS(), server.getR());
-        client bob = new client("Bobbert", "12345", server.getS(), server.getR());
+        client bob = new client("Bob", "12345", server.getS(), server.getR());
+        client connor = new client("Connor", "Super secret password", server.getS(), server.getR());
+        client daisy = new client("Daisy", "kjempebra", server.getS(), server.getR());
 
-        File f = new File(dir + "/pond.jpg");
-        uploadProtocol(alice, server, f);
+        //File f = new File(dir + "/pond.jpg");
+        //uploadProtocol(alice, server, f);
 
         //uploadAll(alice, server);
 
+        //alice.rangeSearch(server, "d01m01y2013", "d17m07y2014");
 
-        //searchProtocol(alice, server, "norway");
-
+        searchProtocol(alice, server, "vår");
 
     }
 
@@ -46,6 +48,11 @@ public class main {
         server.upload(client.getName(), encrypted, bloomFilterNewName);
     }
 
+    //TODO: consider video support
+    //TODO: vision AI
+    //TODO: support for precomputing image data
+
+
     /*
     Current supported searchWord formats:
     place names: "Bergen" (disregarding capital letters and spaces),
@@ -58,38 +65,31 @@ public class main {
     filename without extension: "profilePicture"
 
     Example searchWords for picture taken in bergen:
-    marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, pond.jpg, pond
+    marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, m09y2017, d25m09, høst, autumn, pond.jpg, pond
      */
     public static void searchProtocol(client client, server server, String searchWord){
 
-        BigInteger[] trapdoor = client.trapdoor(searchWord);
-        File[] files = server.searchAllFiles(client.getName(), trapdoor);
-        System.out.println(files.length);
-
-        for(File f:files){
-            File dec = client.decryptFile(f);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if(!client.checkError(searchWord, dec)){
-                dec.delete();
-
-            }
-
-        }
+        client.search(server, searchWord);
     }
 
     public static void uploadAll(client client, server server){
         File dir = new File(path + "/allImages/");
         int i = 0;
         for(File f: dir.listFiles()){
-            //
+            i++;
+            /*
+            if(i <= 20){
+                continue;
+            }
+            if(i >= 60){
+                break;
+            }
+
+             */
             uploadProtocol(client, server, f);
             //System.out.println(f.getName() + Arrays.toString(places));
             System.out.println(i + "/"+ dir.listFiles().length);
-            i++;
+
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
