@@ -18,18 +18,18 @@ public class main {
 
         server server = new server(512,3 , 50);
 
-        new Gui(server);
+        //new Gui(server);
 
 
-        //client alice = new client("Alice","password123", server.getS(), server.getR());
-        client bob = new client("Bob", "12345", server.getS(), server.getR());
-        client connor = new client("Connor", "Super secret password", server.getS(), server.getR());
-        client daisy = new client("Daisy", "kjempebra", server.getS(), server.getR());
+        client alice = new client("Alice","password123", server.getS(), server.getR());
+        //client bob = new client("Bob", "12345", server.getS(), server.getR());
+        //client connor = new client("Connor", "Super secret password", server.getS(), server.getR());
+        //client daisy = new client("Daisy", "kjempebra", server.getS(), server.getR());
 
         //File f = new File(dir + "/IMG_9856.MOV");
         //uploadProtocol(alice, server, f);
 
-        //uploadAll(alice, server);
+        uploadAll(alice, server);
 
         //alice.rangeSearch(server, "d01m01y2013", "d17m07y2014");
 
@@ -44,7 +44,7 @@ public class main {
 
 
     //TODO: vision AI
-    //TODO: support for precomputing image data
+    //TODO: finpusse gui (datePicker, rangeSearch, Overskrift, Brukerveiledning)
 
 
     /*
@@ -84,11 +84,7 @@ public class main {
             //System.out.println(f.getName() + Arrays.toString(places));
             System.out.println(i + "/"+ dir.listFiles().length);
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
         }
     }
 

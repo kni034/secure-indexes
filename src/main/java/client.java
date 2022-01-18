@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 public class client {
     private String name;
     private static final String tmpFolder = "./src/main/resources/";
-    private String userPath;
     private BitSet[] Kpriv;
     private int s;
     private int r;
@@ -223,7 +222,7 @@ public class client {
     }
 
     public void upload(server server,File file){
-        File bloomFilter = buildIndex(file, server.getUpperbound(), true);
+        File bloomFilter = buildIndex(file, server.getUpperbound(), false);
 
         File encrypted = encryptFile(file);
 
@@ -236,6 +235,7 @@ public class client {
         server.upload(getUid(), encrypted, bloomFilterNewName);
     }
 
+    /* Support for txt format
     private String[] readWords(File file){
         ArrayList<String> allWords = new ArrayList<>(); //remove duplicates
 
@@ -260,6 +260,7 @@ public class client {
         words = allWords.toArray(words);
         return words;
     }
+     */
 
     public String formatSearchWord(String word){
         word = word.replaceAll(" ", "");
@@ -267,14 +268,29 @@ public class client {
         return word;
     }
 
-    public File buildIndex(File file, int u, boolean image){
+    public File buildIndex(File file, int u, boolean recompute){
         String[] words;
-        if(image){
+        if(recompute){
             ImageProcessor ip = new ImageProcessor();
             words = ip.readMetaData(file);
+
+            HashMap<String,String[]> preComp = readPreComp();
+            preComp.put(file.getPath(),words);
+            writePreComp(preComp);
+            waitForAPI();
         }
         else {
-            words = readWords(file);
+            HashMap<String,String[]> preComp = readPreComp();
+            if(preComp.containsKey(file.getPath())){
+                words = preComp.get(file.getPath());
+            }
+            else {
+                ImageProcessor ip = new ImageProcessor();
+                words = ip.readMetaData(file);
+                preComp.put(file.getPath(),words);
+                writePreComp(preComp);
+                waitForAPI();
+            }
         }
         //System.out.println(Arrays.toString(words));
         return buildIndexWordsProvided(file, u, words);
@@ -324,6 +340,65 @@ public class client {
         return f;
     }
 
+
+
+    public HashMap<String,String[]> readPreComp() {
+        Path preCompPath = Paths.get(tmpFolder + "preComp/");
+        try {
+            Files.createDirectories(preCompPath);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        File toFile = new File(preCompPath + "/words");
+        HashMap<String, String[]> preComputed;
+        try {
+
+            File toRead = toFile;
+
+            FileInputStream fis = new FileInputStream(toRead);
+            ObjectInputStream ois = new ObjectInputStream(fis);
+
+            HashMap<String,String[]> mapInFile=(HashMap<String,String[]>)ois.readObject();
+
+            ois.close();
+            fis.close();
+
+            preComputed = mapInFile;
+            return preComputed;
+
+        } catch(Exception e) {
+
+        }
+        return new HashMap<String, String[]>();
+    }
+
+
+
+    public void writePreComp(HashMap<String,String[]> preComp) {
+
+        File preComputed = new File(tmpFolder + "preComp/words");
+
+        try {
+            FileOutputStream fos = new FileOutputStream(preComputed);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(preComp);
+            oos.flush();
+            oos.close();
+            fos.close();
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void waitForAPI(){
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
 
 }

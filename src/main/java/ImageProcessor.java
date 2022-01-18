@@ -7,14 +7,11 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 
-import javax.swing.text.DateFormatter;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class ImageProcessor {
 
@@ -163,7 +160,7 @@ public class ImageProcessor {
 
         String[] places = new String[0];
         try {
-            getData(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
+            getLocationDataFromAPI(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
         }
         catch (Exception e){
 
@@ -261,14 +258,14 @@ public class ImageProcessor {
         String latDirection = coordinates.get("GPS Latitude Ref");
         double lat = DMStoDecimal(Integer.parseInt(latDMS[0]), Integer.parseInt(latDMS[1]), Double.parseDouble(latDMS[2]), latDirection);
 
-        String[] places = getData(lat,lon);
+        String[] places = getLocationDataFromAPI(lat,lon);
 
         return  places;
 
 
     }
 
-    private String[] getData(double lat, double lon) throws UnsupportedEncodingException {
+    private String[] getLocationDataFromAPI(double lat, double lon) throws UnsupportedEncodingException {
         Dotenv dotenv = Dotenv.load();
 
         String host = "https://eu1.locationiq.com/v1/reverse.php";
