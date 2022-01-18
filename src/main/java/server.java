@@ -96,7 +96,7 @@ public class server {
         }
 
         File[] returnArray = returnFiles.toArray(new File[0]);
-        System.out.println("Downloaded " + returnArray.length + " files from " + userID);
+        //System.out.println("Downloaded " + returnArray.length + " files from " + userID);
         return returnArray;
     }
 

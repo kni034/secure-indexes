@@ -7,13 +7,13 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 
+import javax.swing.text.DateFormatter;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class ImageProcessor {
@@ -23,6 +23,7 @@ public class ImageProcessor {
 
         String[] places = new String[0];
         String[] dates = new String[0];
+        String[] both = new String[0];
         String[] fileNames = getFileNames(f);
         Metadata metadata = null;
         try {
@@ -43,15 +44,22 @@ public class ImageProcessor {
                     e.printStackTrace();
                 }
 
-                if(directory.getName().equals("Exif SubIFD")){
-                    dates = getDates(directory);
+                try {
+                    if (directory.getName().equals("Exif SubIFD")) {
+                        dates = getDates(directory);
+                    } else if (directory.getName().equals("MP4")) {
+                        both = getDatesMP4(directory);
+                    }
+                }
+                catch (Exception e){
+                    e.printStackTrace();
                 }
             }
 
 
         ArrayList<String> allWords = new ArrayList<>();
-        if(places.length == 0){
-            System.out.println("Error adding GPS data for image: "+ f.getName());
+        if(places.length == 0 && both.length == 0){
+            System.out.println("Error adding GPS data for file: "+ f.getName());
         }
         else {
             for (String s : places) {
@@ -59,11 +67,17 @@ public class ImageProcessor {
             }
         }
 
-        if(dates.length == 0){
-            System.out.println("Error adding dates for image: "+ f.getName());
+        if(dates.length == 0 && both.length == 0){
+            System.out.println("Error adding dates for file: "+ f.getName());
         }
         else {
             for(String s: dates){
+                allWords.add(s);
+            }
+        }
+
+        if(!(both.length == 0)){
+            for(String s: both){
                 allWords.add(s);
             }
         }
@@ -80,6 +94,92 @@ public class ImageProcessor {
         String[] words = allWords.toArray(new String[0]);
 
         return words;
+    }
+
+    private String[] getDatesMP4(Directory directory) throws UnsupportedEncodingException {
+        HashMap<String,String> map = new HashMap<>();
+        for (Tag tag : directory.getTags()) {
+            map.put(tag.getTagName(), tag.getDescription());
+        }
+        String time = map.get("Creation Time");
+
+        String[] dateElements = time.split(" ");
+        String month;
+        String weekday;
+
+        switch (dateElements[0]){
+            case "Mon": weekday = "MONDAY"; break;
+            case "Tue": weekday = "TUESDAY"; break;
+            case "Wed": weekday = "WEDNESDAY"; break;
+            case "Thu": weekday = "THURSDAY"; break;
+            case "Fri": weekday = "FRIDAY"; break;
+            case "Sat": weekday = "SATURDAY"; break;
+            default: weekday = "SUNDAY";
+        }
+
+        switch (dateElements[1]){
+            case "Jan": month = "01"; break;
+            case "Feb": month = "02"; break;
+            case "Mar": month = "03"; break;
+            case "Apr": month = "04"; break;
+            case "May": month = "05"; break;
+            case "Jun": month = "06"; break;
+            case "Jul": month = "07"; break;
+            case "Aug": month = "08"; break;
+            case "Sep": month = "09"; break;
+            case "Oct": month = "10"; break;
+            case "Nov": month = "11"; break;
+            default: month = "12";
+        }
+
+        String seasonN = "";
+        String seasonE = "";
+        if(month.equals("01") || month.equals("02") || month.equals("12")){
+            seasonN = "Vinter";
+            seasonE = "Winter";
+        }
+        if(month.equals("03") || month.equals("04") || month.equals("05")){
+            seasonN = "Vår";
+            seasonE = "Spring";
+        }
+        if(month.equals("06") || month.equals("07") || month.equals("08")){
+            seasonN = "Sommer";
+            seasonE = "Summer";
+        }
+        if(month.equals("09") || month.equals("10") || month.equals("11")){
+            seasonN = "Høst";
+            seasonE = "Autumn";
+        }
+
+        String year = "y" + dateElements[dateElements.length-1];
+        month = "m" + month;
+        String day = "d" + dateElements[2];
+
+        String ymDate = month + year;
+        String dmDate = day + month;
+        String ymdDate = day + month + year;
+
+
+
+        String[] places = new String[0];
+        try {
+            getData(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
+        }
+        catch (Exception e){
+
+        }
+        ArrayList<String> allElements = new ArrayList<>(Arrays.asList(places));
+        allElements.add(year);
+        allElements.add(month);
+        allElements.add(day);
+        allElements.add(weekday);
+        allElements.add(ymdDate);
+        allElements.add(ymDate);
+        allElements.add(dmDate);
+        allElements.add(seasonN);
+        allElements.add(seasonE);
+
+        return allElements.toArray(new String[0]);
     }
 
     private String[] getFileNames(File f){

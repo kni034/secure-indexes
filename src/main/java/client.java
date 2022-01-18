@@ -1,13 +1,13 @@
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.swing.plaf.multi.MultiSeparatorUI;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.security.*;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,7 +28,7 @@ public class client {
         this.name = name;
         this.s = s;
         this.r = r;
-        this.masterKey = CryptoHelper.sha512Hash(name + password);    //salt?
+        this.masterKey = CryptoHelper.sha512Hash(name + password);
         secretKeySpec = new SecretKeySpec(masterKey.substring(0,16).getBytes(), "AES");
 
         Path up = Paths.get(tmpFolder + "/clientStorage/" + name);
@@ -109,7 +109,7 @@ public class client {
     public void search(server server, String searchWord){
 
         BigInteger[] trapdoor = trapdoor(searchWord);
-        File[] files = server.searchAllFiles(getName(), trapdoor);
+        File[] files = server.searchAllFiles(getUid(), trapdoor);
 
         for(File f:files){
             File dec = decryptFile(f);
@@ -123,7 +123,7 @@ public class client {
                 dec.delete();
             }
 
-            Path userPath = Paths.get(tmpFolder + "/clientStorage/" + name);
+            Path userPath = Paths.get(tmpFolder + "/clientStorage/" + getName());
             Path originalPath = Paths.get(dec.getPath());
 
             try {
@@ -131,20 +131,19 @@ public class client {
 
                 Files.move(originalPath, userPath.resolve(originalPath.getFileName()),
                         StandardCopyOption.REPLACE_EXISTING);
-
             }
             catch (Exception e){
                 e.printStackTrace();
             }
-
-
         }
-
+        System.out.println("Downloaded " + files.length + " files from " + getName());
+    }
+    private String getName(){
+        return name;
     }
 
-
-    public String getName(){
-        return name;
+    public String getUid(){
+        return CryptoHelper.sha512Hash(masterKey);
     }
 
     public BitSet[] keygen(int s, int r, String masterKey){
@@ -157,8 +156,6 @@ public class client {
                 boolean bit = random.nextBoolean();
                 k.set(j,bit);
             }
-
-
             Kpriv[i] = k;
         }
         return Kpriv;
@@ -225,7 +222,19 @@ public class client {
         return clear;
     }
 
+    public void upload(server server,File file){
+        File bloomFilter = buildIndex(file, server.getUpperbound(), true);
 
+        File encrypted = encryptFile(file);
+
+        File bloomFilterNewName = new File(tmpFolder + encrypted.getName() + ".bf");
+        try{
+            Files.move(bloomFilter.toPath(), bloomFilterNewName.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        server.upload(getUid(), encrypted, bloomFilterNewName);
+    }
 
     private String[] readWords(File file){
         ArrayList<String> allWords = new ArrayList<>(); //remove duplicates
@@ -267,6 +276,7 @@ public class client {
         else {
             words = readWords(file);
         }
+        //System.out.println(Arrays.toString(words));
         return buildIndexWordsProvided(file, u, words);
     }
 
