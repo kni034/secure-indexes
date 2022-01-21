@@ -1,12 +1,4 @@
-import com.drew.metadata.Directory;
-
 import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.HashMap;
 
 public class main {
     private static final String path = "./src/main/resources/";
@@ -18,10 +10,11 @@ public class main {
 
         server server = new server(512,3 , 50);
 
-        //new Gui(server);
+        new Gui(server);
 
 
-        client alice = new client("Alice","password123", server.getS(), server.getR());
+        //client alice = new client("Alice","password", server.getS(), server.getR());
+
         //client bob = new client("Bob", "12345", server.getS(), server.getR());
         //client connor = new client("Connor", "Super secret password", server.getS(), server.getR());
         //client daisy = new client("Daisy", "kjempebra", server.getS(), server.getR());
@@ -29,7 +22,8 @@ public class main {
         //File f = new File(dir + "/IMG_9856.MOV");
         //uploadProtocol(alice, server, f);
 
-        uploadAll(alice, server);
+
+        //uploadAll(alice, server);
 
         //alice.rangeSearch(server, "d01m01y2013", "d17m07y2014");
 
@@ -44,7 +38,7 @@ public class main {
 
 
     //TODO: vision AI
-    //TODO: finpusse gui (datePicker, rangeSearch, Overskrift, Brukerveiledning)
+    //TODO: finpusse gui (Brukerveiledning, logout)
 
 
     /*

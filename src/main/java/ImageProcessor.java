@@ -160,7 +160,7 @@ public class ImageProcessor {
 
         String[] places = new String[0];
         try {
-            getLocationDataFromAPI(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
+            places = getLocationDataFromAPI(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
         }
         catch (Exception e){
 

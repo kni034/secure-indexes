@@ -2,6 +2,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,14 +14,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class client {
-    private String name;
+    private final String name;
     private static final String tmpFolder = "./src/main/resources/";
-    private BitSet[] Kpriv;
-    private int s;
-    private int r;
-    private String masterKey;
+    private final BitSet[] Kpriv;
+    private final int s;
+    private final int r;
+    private final String masterKey;
     private IvParameterSpec iv;
-    private SecretKeySpec secretKeySpec;
+    private final SecretKeySpec secretKeySpec;
+    private boolean recompute = false;
 
 
     public client(String name, String password, int s, int r){
@@ -37,44 +39,68 @@ public class client {
         catch (Exception e){
             e.printStackTrace();
         }
-        try {
-            iv = new IvParameterSpec(masterKey.substring(16,32).getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        iv = new IvParameterSpec(masterKey.substring(16,32).getBytes(StandardCharsets.UTF_8));
 
         this.Kpriv = keygen(s,r,masterKey);
     }
-    public void rangeSearch(server server, String from, String to){
+
+    private String getName(){
+        return name;
+    }
+
+    public String getUid(){
+        return CryptoHelper.sha512Hash(masterKey);
+    }
+
+    public void setRecompute(boolean value){
+        this.recompute = value;
+    }
+
+
+    public void searchRange(server server, String from, String to){
         from = formatSearchWord(from);
         to = formatSearchWord(to);
 
+        String[] separatedFrom = from.split(":");
+        String[] separatedTo = to.split(":");
 
-        //splits the date search word and removes an empty string element at position 0 f the array, for both inputs
-        String[] fromNumbersOnly = Arrays.asList(from.split("y|m|d")).subList(1, from.split("y|m|d").length).toArray(new String[0]);
-        String[] toNumbersOnly = Arrays.asList(to.split("y|m|d")).subList(1, to.split("y|m|d").length).toArray(new String[0]);
-
-        //remove numbers from the strings
-        String fromFormatString = from.replaceAll("\\d", "");
-        String toFormatString = to.replaceAll("\\d", "");
-
-        if(!fromFormatString.equals(toFormatString)){
-            System.out.println("Date formats must be the same for both ends of the range");
-            return;
+        for(int i=0;i<separatedFrom.length;i++){
+            if(separatedFrom[i].isBlank() && !separatedTo[i].isBlank()){
+                System.out.println("Dates need to have the same format");
+                return;
+            }
+            if(separatedTo[i].isBlank() && !separatedFrom[i].isBlank()){
+                System.out.println("Dates need to have the same format");
+                return;
+            }
         }
 
+        //splits the date search word and removes an empty string element at position 0 f the array, for both inputs
+        //String[] fromNumbersOnly = Arrays.copyOfRange(from.split("y|m|d"), 1, from.split("y|m|d").length);
+        //String[] toNumbersOnly = Arrays.copyOfRange(to.split("y|m|d"), 1, to.split("y|m|d").length);
 
-        boolean containsYear = fromFormatString.contains("y");
-        boolean containsMonth = fromFormatString.contains("m");
-        boolean containsDay = fromFormatString.contains("d");
 
-        int fromYear = containsYear ? Integer.parseInt(fromNumbersOnly[2]) : 1;
-        int fromMonth = containsMonth ? Integer.parseInt(fromNumbersOnly[1]) : 1;
-        int fromDay = containsDay ? Integer.parseInt(fromNumbersOnly[0]) : 1;
 
-        int toYear = containsYear ? Integer.parseInt(toNumbersOnly[2]) : 1;
-        int toMonth = containsMonth ? Integer.parseInt(toNumbersOnly[1]) : 1;
-        int toDay = containsDay ? Integer.parseInt(toNumbersOnly[0]) : 1;
+        //remove numbers from the strings
+        //String fromFormatString = from.replaceAll("\\d", "");
+        //String toFormatString = to.replaceAll("\\d", "");
+
+        //if(!fromFormatString.equals(toFormatString)){
+            //System.out.println("Date formats must be the same for both ends of the range");
+            //return;
+        //}
+
+        boolean containsDay = !separatedFrom[0].equals("");
+        boolean containsMonth = !separatedFrom[1].equals("");
+        boolean containsYear = !separatedFrom[2].equals("");
+
+        int fromYear = containsYear ? Integer.parseInt(separatedFrom[2]) : 1;
+        int fromMonth = containsMonth ? Integer.parseInt(separatedFrom[1]) : 1;
+        int fromDay = containsDay ? Integer.parseInt(separatedFrom[0]) : 1;
+
+        int toYear = containsYear ? Integer.parseInt(separatedTo[2]) : 1;
+        int toMonth = containsMonth ? Integer.parseInt(separatedTo[1]) : 1;
+        int toDay = containsDay ? Integer.parseInt(separatedTo[0]) : 1;
 
         LocalDate fromDate = LocalDate.of(fromYear, fromMonth, fromDay);
         LocalDate toDate = LocalDate.of(toYear, toMonth, toDay);
@@ -86,7 +112,7 @@ public class client {
         }
 
         List<LocalDate> datesBetween = fromDate.datesUntil(toDate).collect(Collectors.toList());
-        HashSet<String> datesBetweenString = new HashSet<String>();
+        HashSet<String> datesBetweenString = new HashSet<>();
 
         for(LocalDate date : datesBetween){
 
@@ -97,15 +123,21 @@ public class client {
 
             datesBetweenString.add(dayString + monthString + yearString);
         }
-        Iterator<String> dateIter = datesBetweenString.iterator();
-        while(dateIter.hasNext()){
-            search(server, dateIter.next());
+        int filesDownloaded = 0;
+        System.out.println(datesBetweenString.size() + " searches");
+        for (String value : datesBetweenString) {
+            filesDownloaded += searchForWord(server, value);
         }
 
-
+        System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
     }
 
     public void search(server server, String searchWord){
+        int filesDownloaded = searchForWord(server, searchWord);
+        System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
+    }
+
+    private int searchForWord(server server, String searchWord){
 
         BigInteger[] trapdoor = trapdoor(searchWord);
         File[] files = server.searchAllFiles(getUid(), trapdoor);
@@ -113,13 +145,9 @@ public class client {
         for(File f:files){
             File dec = decryptFile(f);
 
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             if(!checkError(searchWord, dec)){
                 dec.delete();
+                continue;
             }
 
             Path userPath = Paths.get(tmpFolder + "/clientStorage/" + getName());
@@ -135,14 +163,8 @@ public class client {
                 e.printStackTrace();
             }
         }
-        System.out.println("Downloaded " + files.length + " files from " + getName());
-    }
-    private String getName(){
-        return name;
-    }
-
-    public String getUid(){
-        return CryptoHelper.sha512Hash(masterKey);
+        return files.length;
+        //System.out.println("Downloaded " + files.length + " files from " + getName());
     }
 
     public BitSet[] keygen(int s, int r, String masterKey){
@@ -160,18 +182,44 @@ public class client {
         return Kpriv;
     }
 
-    public boolean checkError(String w, File file){
-        ImageProcessor ip = new ImageProcessor();
-        String[] words = ip.readMetaData(file);
+
+    private boolean checkError(String w, File file){
+        String[] words = getWords(file);
 
         for (String word : words) {
             word = formatSearchWord(word);
-            if(word.equals(w)){
+            if (word.equals(w)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private String[] getWords(File file) {
+        String[] words;
+
+        if (recompute) {
+            ImageProcessor ip = new ImageProcessor();
+            words = ip.readMetaData(file);
+
+            HashMap<String, String[]> preComp = readPreComp();
+            preComp.put(file.getName(), words);
+            writePreComp(preComp);
+            waitForAPI();
+        } else {
+            HashMap<String, String[]> preComp = readPreComp();
+            if (preComp.containsKey(file.getName())) {
+                words = preComp.get(file.getName());
+            } else {
+                ImageProcessor ip = new ImageProcessor();
+                words = ip.readMetaData(file);
+                preComp.put(file.getName(), words);
+                writePreComp(preComp);
+                waitForAPI();
+            }
+        }
+        return words;
     }
 
 
@@ -222,7 +270,7 @@ public class client {
     }
 
     public void upload(server server,File file){
-        File bloomFilter = buildIndex(file, server.getUpperbound(), false);
+        File bloomFilter = buildIndex(file, server.getUpperbound());
 
         File encrypted = encryptFile(file);
 
@@ -268,31 +316,9 @@ public class client {
         return word;
     }
 
-    public File buildIndex(File file, int u, boolean recompute){
-        String[] words;
-        if(recompute){
-            ImageProcessor ip = new ImageProcessor();
-            words = ip.readMetaData(file);
+    public File buildIndex(File file, int u){
+        String[] words = getWords(file);
 
-            HashMap<String,String[]> preComp = readPreComp();
-            preComp.put(file.getPath(),words);
-            writePreComp(preComp);
-            waitForAPI();
-        }
-        else {
-            HashMap<String,String[]> preComp = readPreComp();
-            if(preComp.containsKey(file.getPath())){
-                words = preComp.get(file.getPath());
-            }
-            else {
-                ImageProcessor ip = new ImageProcessor();
-                words = ip.readMetaData(file);
-                preComp.put(file.getPath(),words);
-                writePreComp(preComp);
-                waitForAPI();
-            }
-        }
-        //System.out.println(Arrays.toString(words));
         return buildIndexWordsProvided(file, u, words);
     }
 
@@ -302,13 +328,11 @@ public class client {
 
     public File buildIndexWordsProvided(File file, int u, String[] words){
         String Did = file.getName() + ".bf";
-        Set bloomFilter = new HashSet<BigInteger>();
+        Set<BigInteger> bloomFilter = new HashSet<>();
 
         for(String word : words){
             BigInteger[] Tw = trapdoor(word);
-            for(BigInteger Twi : Tw){
-                bloomFilter.add(Twi);
-            }
+            bloomFilter.addAll(Arrays.asList(Tw));
         }
 
         //(upperbound u - unique words v) * number of hashes r
@@ -329,7 +353,7 @@ public class client {
         //System.out.println(Arrays.toString(bloomFilter.toArray()));
 
         File f = new File(tmpFolder + Did);
-        ObjectOutputStream outputStream = null;
+        ObjectOutputStream outputStream;
         try {
             outputStream = new ObjectOutputStream(new FileOutputStream(f));
             outputStream.writeObject(bloomFilter);
