@@ -2,14 +2,28 @@ import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
 import com.drew.metadata.Tag;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Descriptors;
 import io.github.cdimascio.dotenv.Dotenv;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 
+import com.google.cloud.vision.v1.AnnotateImageRequest;
+import com.google.cloud.vision.v1.AnnotateImageResponse;
+import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
+import com.google.cloud.vision.v1.EntityAnnotation;
+import com.google.cloud.vision.v1.Feature;
+import com.google.cloud.vision.v1.Feature.Type;
+import com.google.cloud.vision.v1.Image;
+import com.google.cloud.vision.v1.ImageAnnotatorClient;
+
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -18,11 +32,16 @@ public class ImageProcessor {
 
     public String[] readMetaData(File f) {
 
+
         String[] places = new String[0];
         String[] dates = new String[0];
         String[] both = new String[0];
+        String[] labels = new String[0];
         String[] fileNames = getFileNames(f);
         Metadata metadata = null;
+        HashSet<String> imageFormats = new HashSet<>(Arrays.asList("JPEG", "HEIF", "PNG"));
+
+
         try {
             metadata = ImageMetadataReader.readMetadata(f);
         }
@@ -30,28 +49,34 @@ public class ImageProcessor {
             e.printStackTrace();
         }
 
-            for (Directory directory : metadata.getDirectories()) {
+        for (Directory directory : metadata.getDirectories()) {
 
-                try {
-                    if (directory.getName().equals("GPS")) {
-                        places = getLocation(directory);
-                    }
-                }
-                catch (Exception e){
-                    e.printStackTrace();
-                }
 
-                try {
-                    if (directory.getName().equals("Exif SubIFD")) {
-                        dates = getDates(directory);
-                    } else if (directory.getName().equals("MP4")) {
-                        both = getDatesMP4(directory);
-                    }
-                }
-                catch (Exception e){
-                    e.printStackTrace();
+            if(imageFormats.contains(directory.getName())){
+                labels = getWordsFromVisionAPI(f);
+            }
+
+            try {
+                if (directory.getName().equals("GPS")) {
+                    places = getLocation(directory);
                 }
             }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+
+            try {
+                if (directory.getName().equals("Exif SubIFD")) {
+                    dates = getDates(directory);
+                }
+                if (directory.getName().equals("MP4")) {
+                    both = getDatesMP4(directory);
+                }
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
 
 
         ArrayList<String> allWords = new ArrayList<>();
@@ -73,14 +98,23 @@ public class ImageProcessor {
             }
         }
 
-        if(!(both.length == 0)){
+        if(both.length != 0){
             for(String s: both){
                 allWords.add(s);
             }
         }
+        if(labels.length != 0){
+            for(String s: labels){
+                allWords.add(s);
+            }
+        }
+        else{
+            System.out.println("Error adding labels for: " + f.getName());
+        }
+
 
         if(fileNames.length == 0){
-            System.out.println("Error adding fileNames for image: "+ f.getName());
+            System.out.println("Error adding fileNames for: "+ f.getName());
         }
         else {
             for (String s : fileNames) {
@@ -89,6 +123,7 @@ public class ImageProcessor {
         }
 
         String[] words = allWords.toArray(new String[0]);
+        System.out.println(Arrays.toString(words));
 
         return words;
     }
@@ -163,7 +198,7 @@ public class ImageProcessor {
             places = getLocationDataFromAPI(Double.parseDouble(map.get("Latitude")), Double.parseDouble(map.get("Longitude")));
         }
         catch (Exception e){
-
+            //Error message handled in readMetaData method
         }
         ArrayList<String> allElements = new ArrayList<>(Arrays.asList(places));
         allElements.add(year);
@@ -196,7 +231,6 @@ public class ImageProcessor {
         HashMap<String,String> map = new HashMap<>();
         for (Tag tag : directory.getTags()) {
             map.put(tag.getTagName(), tag.getDescription());
-            //System.out.println(tag.getTagName() +" "+ tag.getDescription());
         }
 
         String[] date = map.get("Date/Time Original").split(" ")[0].split(":");
@@ -235,7 +269,6 @@ public class ImageProcessor {
         HashMap<String,String> coordinates = new HashMap<>();
         for (Tag tag : directory.getTags()) {
             coordinates.put(tag.getTagName(), tag.getDescription());
-            //System.out.println(tag);
         }
 
         //format and convert longtitude from format DMS to decimal
@@ -298,6 +331,53 @@ public class ImageProcessor {
         }
 
         return decimal;
+    }
+
+    public String[] getWordsFromVisionAPI(File file) {
+
+        ArrayList<String> words = new ArrayList<>();
+
+        try (ImageAnnotatorClient vision = ImageAnnotatorClient.create()) {
+
+            // The path to the image file to annotate
+            String fileName = file.getPath();
+
+            // Reads the image file into memory
+            Path path = Paths.get(fileName);
+            byte[] data = Files.readAllBytes(path);
+            ByteString imgBytes = ByteString.copyFrom(data);
+
+            // Builds the image annotation request
+            List<AnnotateImageRequest> requests = new ArrayList<>();
+            Image img = Image.newBuilder().setContent(imgBytes).build();
+            Feature feat = Feature.newBuilder().setType(Type.LABEL_DETECTION).build();
+            AnnotateImageRequest request =
+                    AnnotateImageRequest.newBuilder().addFeatures(feat).setImage(img).build();
+            requests.add(request);
+
+            // Performs label detection on the image file
+            BatchAnnotateImagesResponse response = vision.batchAnnotateImages(requests);
+            List<AnnotateImageResponse> responses = response.getResponsesList();
+
+            for (AnnotateImageResponse res : responses) {
+                if (res.hasError()) {
+                    return new String[0];
+                }
+
+                for (EntityAnnotation annotation : res.getLabelAnnotationsList()) {
+
+
+                    if(annotation.getScore() >= 0.7){
+                        words.add(annotation.getDescription());
+                    }
+                }
+            }
+        }
+        catch (Exception e){
+            //Error message handled in readMetaData method
+        }
+
+        return words.toArray(new String[0]);
     }
 
 }

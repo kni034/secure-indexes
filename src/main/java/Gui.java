@@ -170,13 +170,15 @@ public class Gui {
             try {
             //first date field is not empty or unchanged, and checkbox is not selected
             if(firstFieldValid && !rangeChb.isSelected()){
-                String[] from = fromDateFld.getText().split(":");
+                String[] from = fromDateFld.getText().split(":",-1);
 
                 String fromDay = from[0].equals("") ? "" : "d" + from[0];
                 String fromMonth = from[1].equals("") ? "" : "m" + from[1];
                 String fromYear = from[2].equals("") ? "" : "y" + from[2];
 
                 String fromString = fromDay + fromMonth + fromYear;
+
+                System.out.println(fromString);
 
                 client.search(server, fromString);
                 return;

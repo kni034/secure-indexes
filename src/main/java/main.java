@@ -1,11 +1,11 @@
+import io.github.cdimascio.dotenv.Dotenv;
+
 import java.io.File;
 
 public class main {
     private static final String path = "./src/main/resources/";
 
     public static void main(String[]args){
-
-
         File dir = new File(path + "/allImages/");
 
         server server = new server(512,3 , 50);
@@ -13,13 +13,18 @@ public class main {
         new Gui(server);
 
 
+
+
         //client alice = new client("Alice","password", server.getS(), server.getR());
+        //alice.setRecompute(true);
+
 
         //client bob = new client("Bob", "12345", server.getS(), server.getR());
         //client connor = new client("Connor", "Super secret password", server.getS(), server.getR());
         //client daisy = new client("Daisy", "kjempebra", server.getS(), server.getR());
 
-        //File f = new File(dir + "/IMG_9856.MOV");
+        //File f = new File(dir + "/IMG_9677.MOV");
+
         //uploadProtocol(alice, server, f);
 
 
