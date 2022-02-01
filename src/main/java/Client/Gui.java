@@ -1,18 +1,23 @@
+package Client;
+
+import Server.authenticator;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.Arrays;
+import java.util.concurrent.FutureTask;
 
-public class Gui {
-    private server server;
-    private JFrame frame;
+public class Gui{
+    private final authenticator auth;
+    private final JFrame frame;
 
-    public Gui(server server){
+    public Gui(authenticator auth){
         JFrame frame = new JFrame();
 
-        this.server = server;
+        this.auth = auth;
         this.frame = frame;
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -72,17 +77,28 @@ public class Gui {
 
         JLabel outputLbl = new JLabel();
         outputLbl.setVerticalAlignment(JLabel.TOP);
+        outputLbl.setBorder(BorderFactory.createEmptyBorder(0,30,30,30));
         loginTxtPnl.add(outputLbl);
 
         JButton loginBtn = new JButton("Log in");
         loginBtn.addActionListener(e -> {
             if(nameFld.getText().isBlank() || passwordFld.getPassword().length < 8){
                 outputLbl.setText("Username missing or password is too short (minimum 8 characters)");
+                frame.pack();
                 return;
             }
-            frame.remove(mainLoginPnl);
-            frame.repaint();
-            mainScreen(new client(nameFld.getText(), new String(passwordFld.getPassword()), server.getS(), server.getR()));
+            client client = new client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            if(client.connect()){
+                frame.remove(mainLoginPnl);
+                frame.repaint();
+                mainScreen(client);
+            }
+            else {
+                outputLbl.setText("Wrong username or password");
+                frame.pack();
+                return;
+            }
+
         });
 
         c.gridx = 2;
@@ -120,7 +136,7 @@ public class Gui {
             if(searchFld.getText().isBlank()){
                 return;
             }
-            client.search(server, searchFld.getText());
+            client.search(searchFld.getText());
         });
 
         firstSectionPnl.add(searchBtn);
@@ -180,12 +196,12 @@ public class Gui {
 
                 System.out.println(fromString);
 
-                client.search(server, fromString);
+                client.search(fromString);
                 return;
             }
             //first and second date field is not empty or unchanged and checkbox is selected
             else if(rangeChb.isSelected() && firstFieldValid && secondFieldValid){
-                    client.searchRange(server, fromDateFld.getText(), toDateFld.getText());
+                    client.searchRange(fromDateFld.getText(), toDateFld.getText());
                     return;
                 }
 
@@ -208,16 +224,92 @@ public class Gui {
         JFileChooser fileChooser = new JFileChooser(new File("./src/main/resources/allImages/"));
         fileChooser.setMultiSelectionEnabled(true);
 
+        JCheckBox extraWordsChb = new JCheckBox("Add extra words");
+
+
+        JPanel fifthSectionPnl = new JPanel();
+        fifthSectionPnl.setLayout(new BoxLayout(fifthSectionPnl, BoxLayout.X_AXIS));
+        fifthSectionPnl.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
+
+        JLabel extraWordsLbl = new JLabel();
+        extraWordsLbl.setVisible(false);
+        fifthSectionPnl.add(extraWordsLbl);
+
+        JTextField extraWordsFld = new JTextField();
+        extraWordsFld.setVisible(false);
+        fifthSectionPnl.add(extraWordsFld);
+
+        JButton extraWordsBtn = new JButton("Add");
+        extraWordsBtn.setVisible(false);
+
+        fifthSectionPnl.add(extraWordsBtn);
+
+        ActionListener action = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int returnValue = fileChooser.showOpenDialog(null);
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    File[] files = fileChooser.getSelectedFiles();
+
+                    Arrays.asList(files).forEach(x -> {
+                        if (x.isFile() && !extraWordsChb.isSelected()) {
+                            client.upload(x, new String[0]);
+                        }
+                        else if(x.isFile()){
+                            extraWordsLbl.setVisible(true);
+                            extraWordsLbl.setText("Extra words for "+x.getName() + ": ");
+                            extraWordsFld.setVisible(true);
+                            extraWordsBtn.setVisible(true);
+
+
+
+
+
+
+                            System.out.println("det funker");
+
+                            //TODO: finne løsning på laste opp filer med ekstra ord problem :(
+                        }
+                    });
+                    System.out.println("Uploaded " + files.length + " files");
+                }
+            }
+
+            private void upload(File f, String[] words){
+
+            }
+        };
+
+
         JButton uploadBtn = new JButton("Choose file(s)");
+
         uploadBtn.addActionListener(e -> {
             int returnValue = fileChooser.showOpenDialog(null);
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File[] files = fileChooser.getSelectedFiles();
+
                 Arrays.asList(files).forEach(x -> {
-                    if (x.isFile()) {
-                        client.upload(server,x);
+                    if (x.isFile() && !extraWordsChb.isSelected()) {
+                        client.upload(x, new String[0]);
+                    }
+                    else if(x.isFile()){
+                        extraWordsLbl.setVisible(true);
+                        extraWordsLbl.setText("Extra words for "+x.getName() + ": ");
+                        extraWordsFld.setVisible(true);
+                        extraWordsBtn.setVisible(true);
+
+
+
+
+
+
+                        System.out.println("det funker");
+
+                        //TODO: finne løsning på laste opp filer med ekstra ord problem :(
                     }
                 });
                 System.out.println("Uploaded " + files.length + " files");
@@ -226,23 +318,35 @@ public class Gui {
         fourthSectionPnl.add(uploadBtn);
 
 
-        JPanel fifthSectionPnl = new JPanel();
-        fifthSectionPnl.setLayout(new BoxLayout(fifthSectionPnl, BoxLayout.X_AXIS));
-        fifthSectionPnl.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
+        fourthSectionPnl.add(extraWordsChb);
+
+        extraWordsBtn.addActionListener(e -> {
+
+        });
+
+
+        JPanel sixthSectionPnl = new JPanel();
+        sixthSectionPnl.setLayout(new BoxLayout(sixthSectionPnl, BoxLayout.X_AXIS));
+        sixthSectionPnl.setBorder(BorderFactory.createEmptyBorder(30,30,30,30));
+
+
 
         JButton helpBtn = new JButton("Help");
         helpBtn.addActionListener(e -> {
+            System.out.println("------------------------------------------------ Help ------------------------------------------------");
             System.out.println("Search for keywords in your stored pictures and videos!");
-            System.out.println("Most files have keywords for the place name the file was created, the date and the name of the file.");
-            System.out.println("Examples of keywords are: marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, m09y2017, d25m09, høst, autumn, pond.jpg, pond");
+            System.out.println("Most files have keywords for the place name the file was created, the date, name of the file and objects in pictures.");
+            System.out.println("Examples of keywords are: marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, \n" +
+                    "m09y2017, d25m09, høst, autumn, pond.jpg, pond, Water, Plant, Sky, Water resources, Plant community, Leaf, Natural landscape, Natural environment, Branch, Lacustrine plain");
             System.out.println("You can also search for files created between 2 dates");
             System.out.println("The date format is DD:MM:YYYY, and you can exclude DD and MM if you want");
             System.out.println("Example of a search for all videos/pictures taken between may 2020 and february 2021: ':5:2020' - ':2:2021'");
             System.out.println("Downloaded files are stored in your personal folder in the clientFiles folder");
             System.out.println("You upload files by pressing the upload button (choose multiple files by holding Ctrl while selecting)");
+            System.out.println("------------------------------------------------ Help ------------------------------------------------");
 
         });
-        fifthSectionPnl.add(helpBtn);
+        sixthSectionPnl.add(helpBtn);
 
         JButton logoutBtn = new JButton("Log out");
         logoutBtn.addActionListener(e -> {
@@ -250,13 +354,14 @@ public class Gui {
             frame.repaint();
             loginScreen();
         });
-        fifthSectionPnl.add(logoutBtn);
+        sixthSectionPnl.add(logoutBtn);
 
         mainPnl.add(firstSectionPnl);
         mainPnl.add(secondSectionPnl);
         mainPnl.add(thirdSectionPnl);
         mainPnl.add(fourthSectionPnl);
         mainPnl.add(fifthSectionPnl);
+        mainPnl.add(sixthSectionPnl);
 
         frame.add(mainPnl, BorderLayout.WEST);
         frame.pack();

@@ -1,3 +1,5 @@
+package Server;
+
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -51,6 +53,25 @@ public class server {
             e.printStackTrace();
         }
         return bf;
+    }
+
+    public boolean userExists(String userID){
+        Path userPath = Paths.get(path + userID);
+        File dir = new File(String.valueOf(userPath));
+        if (dir.exists()){
+            return true;
+        }
+        return false;
+    }
+
+    public void createUser(String userID){
+        Path userPath = Paths.get(path + userID);
+        try {
+            Files.createDirectories(userPath);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void upload(String userID, File file, File bloomFilter){

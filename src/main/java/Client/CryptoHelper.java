@@ -1,5 +1,8 @@
+package Client;
+
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.math.BigInteger;
@@ -7,6 +10,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
 public class CryptoHelper {
@@ -43,13 +47,13 @@ public class CryptoHelper {
     public static byte[] XORByteArrays(byte[] array1, byte[] array2){
         byte[] result = new byte[array1.length];
         for(int i=0;i<array1.length;i++){
-            String binary = "";
+            StringBuilder binary = new StringBuilder();
             String s1 = String.format("%8s", Integer.toBinaryString(array1[i] & 0xFF)).replace(' ', '0');
             String s2 = String.format("%8s", Integer.toBinaryString(array2[i] & 0xFF)).replace(' ', '0');
             for(int j=0;j<s1.length();j++){
-                binary += ((int)s1.charAt(j) - 48 + (int)s2.charAt(j) - 48) % 2;
+                binary.append(((int) s1.charAt(j) - 48 + (int) s2.charAt(j) - 48) % 2);
             }
-            int foo = Integer.parseInt(binary, 2);
+            int foo = Integer.parseInt(binary.toString(), 2);
             result[i] = (byte) foo;
         }
         return result;
@@ -87,12 +91,12 @@ public class CryptoHelper {
 
         //Create byte array to read data in chunks
         byte[] byteArray = new byte[1024];
-        int bytesCount = 0;
+        int bytesCount;
 
         //Read file data and update in message digest
         while ((bytesCount = fis.read(byteArray)) != -1) {
             digest.update(byteArray, 0, bytesCount);
-        };
+        }
 
         //close the stream; We don't need it now.
         fis.close();
@@ -103,9 +107,8 @@ public class CryptoHelper {
         //This bytes[] has bytes in decimal format;
         //Convert it to hexadecimal format
         StringBuilder sb = new StringBuilder();
-        for(int i=0; i< bytes.length ;i++)
-        {
-            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+        for (byte aByte : bytes) {
+            sb.append(Integer.toString((aByte & 0xff) + 0x100, 16).substring(1));
         }
 
         //return complete hash
@@ -121,6 +124,19 @@ public class CryptoHelper {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static String hashPassword( final char[] password, final byte[] salt, final int iterations, final int keyLength ) {
+        try {
+            SecretKeyFactory skf = SecretKeyFactory.getInstance( "PBKDF2WithHmacSHA512" );
+            PBEKeySpec spec = new PBEKeySpec( password, salt, iterations, keyLength );
+            SecretKey key = skf.generateSecret( spec );
+            byte[] res = key.getEncoded( );
+            String s = Base64.getEncoder().encodeToString(res);
+            return s;
+        } catch ( NoSuchAlgorithmException | InvalidKeySpecException e ) {
+            throw new RuntimeException( e );
+        }
     }
 
     public static void encryptFile(File inFile, File outFile, IvParameterSpec iv, SecretKeySpec skeySpec){
@@ -147,23 +163,7 @@ public class CryptoHelper {
             outputStream.close();
 
 
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -189,23 +189,7 @@ public class CryptoHelper {
             inputStream.close();
             outputStream.close();
 
-        } catch (InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -222,14 +206,14 @@ public class CryptoHelper {
             e.printStackTrace();
         }
 
+        assert mac != null;
         return mac.doFinal(data);
     }
 
 
     public static byte[] calculateHash(byte[] data) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-512");
-        byte[] messageDigest = md.digest(data);
-        return messageDigest;
+        return md.digest(data);
     }
 
     public static String sha512Hash(String input){
@@ -248,15 +232,15 @@ public class CryptoHelper {
             BigInteger no = new BigInteger(1, messageDigest);
 
             // Convert message digest into hex value
-            String hashtext = no.toString(16);
+            StringBuilder hashtext = new StringBuilder(no.toString(16));
 
             // Add preceding 0s to make it 32 bit
             while (hashtext.length() < 32) {
-                hashtext = "0" + hashtext;
+                hashtext.insert(0, "0");
             }
 
             // return the HashText
-            return hashtext;
+            return hashtext.toString();
         }
 
         // For specifying wrong message digest algorithms

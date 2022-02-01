@@ -1,3 +1,7 @@
+package Client;
+
+import Server.authenticator;
+
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
@@ -15,6 +19,7 @@ import java.util.stream.Collectors;
 
 public class client {
     private final String name;
+    private final String password;
     private static final String tmpFolder = "./src/main/resources/";
     private final BitSet[] Kpriv;
     private final int s;
@@ -23,10 +28,14 @@ public class client {
     private IvParameterSpec iv;
     private final SecretKeySpec secretKeySpec;
     private boolean recompute = false;
+    private UUID uuid;
+    private authenticator auth;
 
 
-    public client(String name, String password, int s, int r){
+    public client(String name, String password, authenticator auth, int s, int r){
+        this.auth = auth;
         this.name = name;
+        this.password = password;
         this.s = s;
         this.r = r;
         this.masterKey = CryptoHelper.sha512Hash(name + password);
@@ -44,12 +53,33 @@ public class client {
         this.Kpriv = keygen(s,r,masterKey);
     }
 
-    private String getName(){
-        return name;
+    public boolean connect(){
+
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512);
+        System.out.println(hashedPass);
+
+        try {
+            this.uuid = auth.login(getUid(), CryptoHelper.sha512Hash(password));    //not good, use passowrd hashing algorithm with salt
+            if(uuid != null) {
+                return true;
+            }
+        }
+        catch (Exception e){
+            System.out.println("wrong username or password");
+        }
+        return false;
     }
 
+    protected String getName(){
+        return name;
+    }
+//return new String[]{
+//                Client.CryptoHelper.sha512Hash(name),
+//                Client.CryptoHelper.sha512Hash(password)
+//        };
     public String getUid(){
-        return CryptoHelper.sha512Hash(masterKey);
+        return CryptoHelper.sha512Hash(name);
+
     }
 
     public void setRecompute(boolean value){
@@ -57,7 +87,7 @@ public class client {
     }
 
 
-    public void searchRange(server server, String from, String to){
+    public void searchRange(String from, String to){
         from = formatSearchWord(from);
         to = formatSearchWord(to);
 
@@ -75,20 +105,6 @@ public class client {
             }
         }
 
-        //splits the date search word and removes an empty string element at position 0 f the array, for both inputs
-        //String[] fromNumbersOnly = Arrays.copyOfRange(from.split("y|m|d"), 1, from.split("y|m|d").length);
-        //String[] toNumbersOnly = Arrays.copyOfRange(to.split("y|m|d"), 1, to.split("y|m|d").length);
-
-
-
-        //remove numbers from the strings
-        //String fromFormatString = from.replaceAll("\\d", "");
-        //String toFormatString = to.replaceAll("\\d", "");
-
-        //if(!fromFormatString.equals(toFormatString)){
-            //System.out.println("Date formats must be the same for both ends of the range");
-            //return;
-        //}
 
         boolean containsDay = !separatedFrom[0].equals("");
         boolean containsMonth = !separatedFrom[1].equals("");
@@ -126,21 +142,21 @@ public class client {
         int filesDownloaded = 0;
         System.out.println(datesBetweenString.size() + " searches");
         for (String value : datesBetweenString) {
-            filesDownloaded += searchForWord(server, value);
+            filesDownloaded += searchForWord(value);
         }
 
         System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
     }
 
-    public void search(server server, String searchWord){
-        int filesDownloaded = searchForWord(server, searchWord);
+    public void search(String searchWord){
+        int filesDownloaded = searchForWord(searchWord);
         System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
     }
 
-    private int searchForWord(server server, String searchWord){
+    private int searchForWord(String searchWord){
 
         BigInteger[] trapdoor = trapdoor(searchWord);
-        File[] files = server.searchAllFiles(getUid(), trapdoor);
+        File[] files = auth.search(getUid(), uuid, trapdoor);
 
         for(File f:files){
             File dec = decryptFile(f);
@@ -269,8 +285,8 @@ public class client {
         return clear;
     }
 
-    public void upload(server server,File file){
-        File bloomFilter = buildIndex(file, server.getUpperbound());
+    public void upload(File file, String[] extraWords){
+        File bloomFilter = buildIndex(file, extraWords, auth.getUpperbound());
 
         File encrypted = encryptFile(file);
 
@@ -280,7 +296,8 @@ public class client {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        server.upload(getUid(), encrypted, bloomFilterNewName);
+        auth.upload(getUid(), uuid, encrypted, bloomFilterNewName);
+
     }
 
     /* Support for txt format
@@ -316,10 +333,24 @@ public class client {
         return word;
     }
 
-    public File buildIndex(File file, int u){
+    public File buildIndex(File file, String[] extraWords, int u){
+        ArrayList<String> allWords = new ArrayList<>();
         String[] words = getWords(file);
 
-        return buildIndexWordsProvided(file, u, words);
+        if(words.length != 0){
+            for(String s: words){
+                allWords.add(s);
+            }
+        }
+
+        if(extraWords.length != 0){
+            for(String s: extraWords){
+                allWords.add(s);
+            }
+        }
+        //System.out.println(Arrays.toString(words));
+
+        return buildIndexWordsProvided(file, u, allWords.toArray(new String[0]));
     }
 
     public File buildIndex(File file, int u, String[] words){

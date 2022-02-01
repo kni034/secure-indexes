@@ -1,3 +1,5 @@
+package Client;
+
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
@@ -46,6 +48,7 @@ public class ImageProcessor {
             metadata = ImageMetadataReader.readMetadata(f);
         }
         catch(Exception e){
+            System.out.println("feil med bilde" + f.getName());
             e.printStackTrace();
         }
 
@@ -123,7 +126,6 @@ public class ImageProcessor {
         }
 
         String[] words = allWords.toArray(new String[0]);
-        System.out.println(Arrays.toString(words));
 
         return words;
     }
