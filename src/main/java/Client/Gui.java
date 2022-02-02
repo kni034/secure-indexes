@@ -89,7 +89,7 @@ public class Gui{
                 return;
             }
             client client = new client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
-            if(client.connect()){
+            if(client.loginToServer()){
                 frame.remove(mainLoginPnl);
                 frame.repaint();
                 mainScreen(client);
@@ -105,6 +105,31 @@ public class Gui{
         c.gridx = 2;
         c.gridy = 0;
         loginPnl.add(loginBtn, c);
+
+        JButton registerBtn = new JButton("Register");
+
+        registerBtn.addActionListener(e -> {
+            if(nameFld.getText().isBlank() || passwordFld.getPassword().length < 8){
+                outputLbl.setText("Username missing or password is too short (minimum 8 characters)");
+                frame.pack();
+                return;
+            }
+            client client = new client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            if(client.registerToServer()){
+                frame.remove(mainLoginPnl);
+                frame.repaint();
+                mainScreen(client);
+            }
+            else {
+                outputLbl.setText("Username already in use");
+                frame.pack();
+                return;
+            }
+        });
+
+        c.gridx = 2;
+        c.gridy = 1;
+        loginPnl.add(registerBtn, c);
 
         mainLoginPnl.add(loginPnl);
         mainLoginPnl.add(loginTxtPnl);
@@ -266,6 +291,7 @@ public class Gui{
                         extraWordsLbl.setText("Extra words for "+x.getName() + ": ");
                         extraWordsFld.setVisible(true);
                         extraWordsBtn.setVisible(true);
+                        frame.pack();
 
                         extraWordFiles.add(x);
 
@@ -282,6 +308,7 @@ public class Gui{
                 extraWordsLbl.setVisible(false);
                 extraWordsFld.setVisible(false);
                 extraWordsBtn.setVisible(false);
+                frame.pack();
             }
 
         });
@@ -306,6 +333,7 @@ public class Gui{
                 extraWordsLbl.setVisible(false);
                 extraWordsFld.setVisible(false);
                 extraWordsBtn.setVisible(false);
+                frame.pack();
                 return;
             }
 
@@ -313,6 +341,7 @@ public class Gui{
             extraWordsLbl.setText("Extra words for "+extraWordFiles.get(extraWordFiles.size()-1).getName() + ": ");
             extraWordsFld.setVisible(true);
             extraWordsBtn.setVisible(true);
+            frame.pack();
 
         });
 
@@ -335,6 +364,7 @@ public class Gui{
             System.out.println("Example of a search for all videos/pictures taken between may 2020 and february 2021: ':5:2020' - ':2:2021'");
             System.out.println("Downloaded files are stored in your personal folder in the clientFiles folder");
             System.out.println("You upload files by pressing the upload button (choose multiple files by holding Ctrl while selecting)");
+            System.out.println("Add extra words to the files by checking the box and adding words separated by ',' for each file.");
             System.out.println("------------------------------------------------ Help ------------------------------------------------");
 
         });

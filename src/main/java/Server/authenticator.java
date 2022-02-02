@@ -24,10 +24,20 @@ public class authenticator extends Thread {
 
     }
 
-    public UUID login(String userID, String password){
+    public UUID register(String userID, String password){
+
+        try {
+            if(DB.clientExists(userID)){
+                System.out.println("Username already in use");
+                return null;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         try {
             if (!DB.clientExists(userID)) {
-                register(userID, password);
+                createNewUser(userID, password);
             }
         }
         catch (SQLException e){
@@ -39,16 +49,32 @@ public class authenticator extends Thread {
             this.uuid = uuid;
             this.userID = userID;
 
-            System.out.println("login godkjent");
+            System.out.println("New user registered");
             return uuid;
         }else{
-            System.out.println("login ikke godkjent");
+            System.out.println("Username already in use");
         }
 
         return null;
     }
 
-    public void register(String userID, String password){
+    public UUID login(String userID, String password){
+
+        if(DB.login(userID, password)){
+            UUID uuid = UUID.randomUUID();
+            this.uuid = uuid;
+            this.userID = userID;
+
+            System.out.println("Login successful");
+            return uuid;
+        }else{
+            System.out.println("Wrong username or password");
+        }
+
+        return null;
+    }
+
+    public void createNewUser(String userID, String password){
         try {
             if(DB.clientExists(userID)){
                 System.out.println("user exits");

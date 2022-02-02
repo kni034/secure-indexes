@@ -53,13 +53,30 @@ public class client {
         this.Kpriv = keygen(s,r,masterKey);
     }
 
-    public boolean connect(){
+    public boolean loginToServer(){
 
-        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512);
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512); //not good, use better salt!
         System.out.println(hashedPass);
 
         try {
-            this.uuid = auth.login(getUid(), CryptoHelper.sha512Hash(password));    //not good, use passowrd hashing algorithm with salt
+            this.uuid = auth.login(getUid(), CryptoHelper.sha512Hash(password));
+            if(uuid != null) {
+                return true;
+            }
+        }
+        catch (Exception e){
+            System.out.println("wrong username or password");
+        }
+        return false;
+    }
+
+    public boolean registerToServer(){
+
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512); //not good, use better salt!
+        System.out.println(hashedPass);
+
+        try {
+            this.uuid = auth.register(getUid(), CryptoHelper.sha512Hash(password));
             if(uuid != null) {
                 return true;
             }

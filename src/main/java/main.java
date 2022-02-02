@@ -15,12 +15,12 @@ public class main {
         server server = new server(512,3 , 50);
         authenticator auth = new authenticator(server);
 
-        new Gui(auth);
+        //new Gui(auth);
 
 
 
 
-        //Client.client alice = new Client.client("Alice","password", auth, server.getS(), server.getR());
+        Client.client alice = new Client.client("Alice","password", auth, server.getS(), server.getR());
         //alice.setRecompute(true);
 
 
@@ -29,7 +29,8 @@ public class main {
         //Client.client daisy = new Client.client("Daisy", "kjempebra", Server.server.getS(), Server.server.getR());
 
         //File f = new File(dir + "/IMG_2099.HEIC");
-        //alice.connect();
+        alice.registerToServer();
+        alice.loginToServer();
 
         //uploadProtocol(alice, f);
 
@@ -37,7 +38,7 @@ public class main {
         //searchProtocol(alice,"pond");
 
 
-        //uploadAll(alice);
+        uploadAll(alice);
 
         //alice.rangeSearch(Server.server, "d01m01y2013", "d17m07y2014");
 
