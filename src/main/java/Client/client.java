@@ -161,10 +161,18 @@ public class client {
         for(File f:files){
             File dec = decryptFile(f);
 
+
+
+            //TODO: find solution?
+            //Error check does not work for extra words
+            /*
             if(!checkError(searchWord, dec)){
+                System.out.println(dec.getName() + " was downloaded from a hash collision, it will be deleted");
                 dec.delete();
                 continue;
             }
+
+             */
 
             Path userPath = Paths.get(tmpFolder + "/clientStorage/" + getName());
             Path originalPath = Paths.get(dec.getPath());

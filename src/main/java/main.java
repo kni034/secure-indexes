@@ -50,8 +50,6 @@ public class main {
         client.upload(file, new String[0]);
     }
 
-    //TODO: add custom words to files, check if user exists
-
     /*
     Current supported searchWord formats:
     place names: "Bergen" (disregarding capital letters and spaces),

@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.FutureTask;
 
@@ -244,46 +245,10 @@ public class Gui{
 
         fifthSectionPnl.add(extraWordsBtn);
 
-        ActionListener action = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int returnValue = fileChooser.showOpenDialog(null);
-                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    File[] files = fileChooser.getSelectedFiles();
-
-                    Arrays.asList(files).forEach(x -> {
-                        if (x.isFile() && !extraWordsChb.isSelected()) {
-                            client.upload(x, new String[0]);
-                        }
-                        else if(x.isFile()){
-                            extraWordsLbl.setVisible(true);
-                            extraWordsLbl.setText("Extra words for "+x.getName() + ": ");
-                            extraWordsFld.setVisible(true);
-                            extraWordsBtn.setVisible(true);
-
-
-
-
-
-
-                            System.out.println("det funker");
-
-                            //TODO: finne løsning på laste opp filer med ekstra ord problem :(
-                        }
-                    });
-                    System.out.println("Uploaded " + files.length + " files");
-                }
-            }
-
-            private void upload(File f, String[] words){
-
-            }
-        };
-
 
         JButton uploadBtn = new JButton("Choose file(s)");
+
+        ArrayList<File> extraWordFiles = new ArrayList<>();
 
         uploadBtn.addActionListener(e -> {
             int returnValue = fileChooser.showOpenDialog(null);
@@ -302,14 +267,8 @@ public class Gui{
                         extraWordsFld.setVisible(true);
                         extraWordsBtn.setVisible(true);
 
+                        extraWordFiles.add(x);
 
-
-
-
-
-                        System.out.println("det funker");
-
-                        //TODO: finne løsning på laste opp filer med ekstra ord problem :(
                     }
                 });
                 System.out.println("Uploaded " + files.length + " files");
@@ -317,10 +276,43 @@ public class Gui{
         });
         fourthSectionPnl.add(uploadBtn);
 
+        extraWordsChb.addActionListener(e -> {
+
+            if(!extraWordsChb.isSelected() && extraWordFiles.isEmpty()){
+                extraWordsLbl.setVisible(false);
+                extraWordsFld.setVisible(false);
+                extraWordsBtn.setVisible(false);
+            }
+
+        });
 
         fourthSectionPnl.add(extraWordsChb);
 
         extraWordsBtn.addActionListener(e -> {
+
+            if(extraWordFiles.isEmpty()){
+                System.out.println("Choose file(s) first");
+                return;
+            }
+
+            String[] words = extraWordsFld.getText().split(",");
+            File f = extraWordFiles.remove(extraWordFiles.size() -1);
+
+            client.upload(f, words);
+
+            if(extraWordFiles.isEmpty()){
+                extraWordsChb.setSelected(false);
+
+                extraWordsLbl.setVisible(false);
+                extraWordsFld.setVisible(false);
+                extraWordsBtn.setVisible(false);
+                return;
+            }
+
+            extraWordsLbl.setVisible(true);
+            extraWordsLbl.setText("Extra words for "+extraWordFiles.get(extraWordFiles.size()-1).getName() + ": ");
+            extraWordsFld.setVisible(true);
+            extraWordsBtn.setVisible(true);
 
         });
 

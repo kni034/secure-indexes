@@ -104,7 +104,6 @@ public class server {
         String userPath = path + userID;
         File userDir = new File(userPath);
         userDir.mkdirs();
-        File[] files = userDir.listFiles();
 
         ArrayList<File> returnFiles = new ArrayList<>();
         HashMap<String, String> lookup = readLookup(userID);
@@ -117,7 +116,6 @@ public class server {
         }
 
         File[] returnArray = returnFiles.toArray(new File[0]);
-        //System.out.println("Downloaded " + returnArray.length + " files from " + userID);
         return returnArray;
     }
 
