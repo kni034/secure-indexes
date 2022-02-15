@@ -27,17 +27,12 @@ public class authenticator extends Thread {
     public UUID register(String userID, String password){
 
         try {
-            if(DB.clientExists(userID)){
-                System.out.println("Username already in use");
-                return null;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        try {
             if (!DB.clientExists(userID)) {
                 createNewUser(userID, password);
+            }
+            else {
+                System.out.println("Username already in use");
+                return null;
             }
         }
         catch (SQLException e){
@@ -52,7 +47,7 @@ public class authenticator extends Thread {
             System.out.println("New user registered");
             return uuid;
         }else{
-            System.out.println("Username already in use");
+            System.out.println("Unknown error, wrong password when creating user?!?");
         }
 
         return null;
