@@ -19,7 +19,7 @@ public class DB {
             System.out.println(e.getMessage());
         }
     }
-    private static Connection connect(){
+    private Connection connect(){
         String url = dbLocation;
         Connection con = null;
         try{
@@ -30,13 +30,13 @@ public class DB {
         return con;
     }
 
-    public static void createClientTable() throws SQLException {
+    public void createClientTable() throws SQLException {
         String sql =
                 "CREATE TABLE IF NOT EXISTS clients (\n"
                         + "     id integer PRIMARY KEY AUTOINCREMENT, \n"
                         + "     userID varchar(512) UNIQUE NOT NULL,\n"
                         + "     password varchar(512),\n"
-                        + "     salt varchar(512),\n"
+                        + "     salt varchar(512)\n"
                         + ");";
         Connection con = connect();
         Statement stmt = con.createStatement();
@@ -44,22 +44,21 @@ public class DB {
         con.close();
     }
 
-    public static boolean clientExists(String userID) throws SQLException{
-        String query = "SELECT *"
+    public boolean clientExists(String userID) throws SQLException{
+        String query = "SELECT * "
                 + "FROM clients "
                 + "WHERE userID = ?";
         Connection con = connect();
         PreparedStatement ps = con.prepareStatement(query);
         ps.setString(1, userID);
-        ResultSet rs = ps.executeQuery(query);
+        ResultSet rs = ps.executeQuery();
         con.close();
         return rs.next();
     }
 
-    public static void addClient(String userID, String salt){
-        String dir = "/"+userID+"/";
+    public void addClient(String userID, String salt){
         try {
-            String query = "INSERT INTO clients(userID,password,directory)"
+            String query = "INSERT INTO clients(userID,password,salt)"
                     + "VALUES (?,?,?)";
             Connection con = connect();
             PreparedStatement ps = con.prepareStatement(query);
@@ -69,24 +68,24 @@ public class DB {
             ps.executeUpdate();
             con.close();
         }
-        catch (SQLException e){
-            e.printStackTrace();
+        catch (SQLException b){
+            b.printStackTrace();
         }
 
     }
 
-    public static boolean setPassword(String userID, String password){
+    public boolean setPassword(String userID, String password){
         String query =
                 "UPDATE clients "
-                + "Set password = ? " +
-                        "WHERE userid = ?";
+                + "SET password = ? " +
+                        "WHERE userID = ?";
         Connection con = connect();
         try(PreparedStatement ps = con.prepareStatement(query)){
-            ps.setString(1,userID);
-            ps.setString(2,password);
-            ResultSet rs = ps.executeQuery();
+            ps.setString(1,password);
+            ps.setString(2,userID);
+            ps.executeUpdate();
             con.close();
-            return rs.next();
+            return true;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -94,7 +93,7 @@ public class DB {
         }
     }
 
-    public static String getSalt(String userID){
+    public String getSalt(String userID){
         String query =
                 "SELECT salt "
                         + "FROM clients  WHERE userID = ?";
@@ -102,8 +101,9 @@ public class DB {
         try(PreparedStatement ps = con.prepareStatement(query)){
             ps.setString(1,userID);
             ResultSet rs = ps.executeQuery();
+            String salt = rs.getString(1);
             con.close();
-            return rs.getString(0);
+            return salt;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -112,7 +112,7 @@ public class DB {
     }
 
 
-    public static boolean login(String userID, String password){
+    public boolean login(String userID, String password){
         String query =
                 "SELECT * "
                         + "FROM clients  WHERE userID = ?"

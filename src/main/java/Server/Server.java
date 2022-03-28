@@ -10,13 +10,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-public class server {
+public class Server {
     private static final String path = "./src/main/resources/serverStorage/";
     private int upperbound;
     private int s;
     private int r;
 
-    public server(int s,int r, int upperbound){
+    public Server(int s, int r, int upperbound){
         this.s = s;
         this.r = r;
         this.upperbound = upperbound;

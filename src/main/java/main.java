@@ -1,11 +1,8 @@
-import Client.Gui;
-import Client.client;
+import Client.Client;
 import Server.authenticator;
-import Server.server;
+import Server.Server;
 
 import java.io.File;
-import java.sql.SQLOutput;
-import java.util.UUID;
 
 public class main {
     private static final String path = "./src/main/resources/";
@@ -13,7 +10,7 @@ public class main {
     public static void main(String[]args){
         File dir = new File(path + "/allImages/");
 
-        server server = new server(512,3 , 50);
+        Server server = new Server(512,3 , 50);
         authenticator auth = new authenticator(server);
 
         //new Gui(auth);
@@ -21,17 +18,18 @@ public class main {
 
 
 
-        Client.client alice = new Client.client("Alice","password", auth, server.getS(), server.getR());
+        Client alice = new Client("Alice","password", auth, server.getS(), server.getR());
         //alice.setRecompute(true);
 
 
-        //Client.client bob = new Client.client("Bob", "12345", Server.server.getS(), Server.server.getR());
+        //Client bob = new Client("Bob", "12345",auth, server.getS(), server.getR());
         //Client.client connor = new Client.client("Connor", "Super secret password", Server.server.getS(), Server.server.getR());
         //Client.client daisy = new Client.client("Daisy", "kjempebra", Server.server.getS(), Server.server.getR());
 
         //File f = new File(dir + "/IMG_2099.HEIC");
         //alice.registerToServer();
-        alice.loginToServer();
+        //bob.registerToServer();
+        //alice.loginToServer();
 
         //uploadProtocol(alice, f);
 
@@ -47,7 +45,7 @@ public class main {
 
     }
 
-    public static void uploadProtocol(client client, File file){
+    public static void uploadProtocol(Client client, File file){
 
         client.upload(file, new String[0]);
     }
@@ -67,14 +65,14 @@ public class main {
     Example searchWords for picture taken in bergen:
     marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, m09y2017, d25m09, høst, autumn, pond.jpg, pond
      */
-    public static void searchProtocol(client client, String searchWord){
+    public static void searchProtocol(Client client, String searchWord){
         if(!client.loginToServer()){
             return;
         }
         client.search(searchWord);
     }
 
-    public static void uploadAll(client client){
+    public static void uploadAll(Client client){
         if(!client.loginToServer()){
             return;
         }

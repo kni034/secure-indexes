@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class client {
+public class Client {
     private final String name;
     private final String password;
     private static final String tmpFolder = "./src/main/resources/";
@@ -32,7 +32,7 @@ public class client {
     private authenticator auth;
 
 
-    public client(String name, String password, authenticator auth, int s, int r){
+    public Client(String name, String password, authenticator auth, int s, int r){
         this.auth = auth;
         this.name = name;
         this.password = password;
@@ -64,7 +64,7 @@ public class client {
         System.out.println(hashedPass);
 
         try {
-            this.uuid = auth.login(getUid(), CryptoHelper.sha512Hash(password));
+            this.uuid = auth.login(getUid(), hashedPass);
             if(uuid != null) {
                 return true;
             }

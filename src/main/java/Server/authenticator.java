@@ -8,14 +8,14 @@ import java.util.UUID;
 
 public class authenticator extends Thread {
 
-    private final server server;
+    private final Server server;
     private DB database;
     private String userID;
     private UUID uuid;
 
 
 
-    public authenticator(server server){
+    public authenticator(Server server){
         this.server = server;
         this.database = new DB();
         try {
@@ -31,7 +31,7 @@ public class authenticator extends Thread {
     public String createNewUser(String userID){
         String saltString = null;
         try {
-            if(DB.clientExists(userID)){
+            if(database.clientExists(userID)){
                 System.out.println("Authenticator: user exits");
                 return null;
             }else {
@@ -40,7 +40,7 @@ public class authenticator extends Thread {
                 byte[] salt = new byte[16];
                 random.nextBytes(salt);
                 saltString = salt.toString();
-                DB.addClient(userID, saltString);
+                database.addClient(userID, saltString);
                 server.createUser(userID);
             }
         } catch (SQLException e) {
@@ -52,7 +52,7 @@ public class authenticator extends Thread {
     //register 2
     public UUID setPassword(String userID, String password){
 
-        if (DB.setPassword(userID, password)) {
+        if (database.setPassword(userID, password)) {
             System.out.println("Authenticator: User Created");
         }
         else {
@@ -60,7 +60,7 @@ public class authenticator extends Thread {
             return null;
         }
 
-        if(DB.login(userID, password)){
+        if(database.login(userID, password)){
             UUID uuid = UUID.randomUUID();
             this.uuid = uuid;
             this.userID = userID;
@@ -75,7 +75,7 @@ public class authenticator extends Thread {
 
     //login 1
     public String getSalt(String userID){
-        String salt = DB.getSalt(userID);
+        String salt = database.getSalt(userID);
         if(salt != null){
             return salt;
         }
@@ -88,7 +88,7 @@ public class authenticator extends Thread {
     //login 2
     public UUID login(String userID, String password){
 
-        if(DB.login(userID, password)){
+        if(database.login(userID, password)){
             UUID uuid = UUID.randomUUID();
             this.uuid = uuid;
             this.userID = userID;
@@ -141,7 +141,7 @@ public class authenticator extends Thread {
     }
 
     //midlertidig TODO: slett
-    public server getServer(){
+    public Server getServer(){
         return server;
     }
 

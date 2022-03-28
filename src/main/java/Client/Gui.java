@@ -4,12 +4,9 @@ import Server.authenticator;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.FutureTask;
 
 public class Gui{
     private final authenticator auth;
@@ -88,7 +85,7 @@ public class Gui{
                 frame.pack();
                 return;
             }
-            client client = new client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
             if(client.loginToServer()){
                 frame.remove(mainLoginPnl);
                 frame.repaint();
@@ -114,7 +111,7 @@ public class Gui{
                 frame.pack();
                 return;
             }
-            client client = new client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
             if(client.registerToServer()){
                 frame.remove(mainLoginPnl);
                 frame.repaint();
@@ -139,7 +136,7 @@ public class Gui{
 
     }
 
-    private void mainScreen(client client) {
+    private void mainScreen(Client client) {
         JPanel mainPnl = new JPanel();
         mainPnl.setLayout(new BoxLayout(mainPnl, BoxLayout.Y_AXIS));
 
