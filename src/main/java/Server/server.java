@@ -1,5 +1,7 @@
 package Server;
 
+import Client.CryptoHelper;
+
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -80,8 +82,8 @@ public class server {
         Path originalPath = Paths.get(file.getPath());
         Path bfPath = Paths.get(bloomFilter.getPath());
 
-        String newBfPath = userPath + "/" + bloomFilter.getName();
-        String newImagePath = userPath + "/" + file.getName();
+        String newBfPath = bloomFilter.getName();
+        String newImagePath = file.getName();
 
         try {
             Files.createDirectories(userPath);
@@ -98,6 +100,17 @@ public class server {
         updateLookup(userID, newBfPath, newImagePath);
     }
 
+    public BigInteger[] codeWord(BigInteger[] tw, String Did){
+        BigInteger[] cw = new BigInteger[tw.length];
+
+        for (int i = 0; i < tw.length; i++) {
+            byte[] yiByte = CryptoHelper.calculateHMAC(Did.getBytes(), tw[i].toByteArray());
+            BigInteger yi = new BigInteger(yiByte);
+            cw[i] = yi;
+        }
+
+        return cw;
+    }
 
     //download
     public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
@@ -108,10 +121,11 @@ public class server {
         ArrayList<File> returnFiles = new ArrayList<>();
         HashMap<String, String> lookup = readLookup(userID);
 
-        for(String s: lookup.keySet()){
-            String bfPath = lookup.get(s);
-            if(searchBF(new File(bfPath), trapdoor)){
-                returnFiles.add(new File(s));
+        for(String Did: lookup.keySet()){
+            String bfPath = userPath + "/" + lookup.get(Did);
+            BigInteger[] codeword = codeWord(trapdoor, Did);
+            if(searchBF(new File(bfPath), codeword)){
+                returnFiles.add(new File(userPath + "/" + Did));
             }
         }
 
@@ -119,9 +133,9 @@ public class server {
         return returnArray;
     }
 
-    private boolean searchBF(File bloomFilter, BigInteger[] trapdoor){
+    private boolean searchBF(File bloomFilter, BigInteger[] codeword){
         HashSet<BigInteger> bf = readBloomFilter(bloomFilter);
-        for(BigInteger xi : trapdoor){
+        for(BigInteger xi : codeword){
             if(!bf.contains(xi)){
                 return false;
             }
@@ -156,7 +170,7 @@ public class server {
             return lookup;
 
         } catch(Exception e) {
-            System.out.println("user has no lookup file, creating new");
+            System.out.println("Server: New user or missing lookup file, creating new");
         }
         return new HashMap<String, String>();
     }

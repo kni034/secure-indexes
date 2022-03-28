@@ -55,7 +55,12 @@ public class client {
 
     public boolean loginToServer(){
 
-        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512); //not good, use better salt!
+        String salt = auth.getSalt(getUid());
+        if (salt == null){
+            System.out.println("Client: Wrong username or password");
+        }
+
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 10000, 512);
         System.out.println(hashedPass);
 
         try {
@@ -65,24 +70,30 @@ public class client {
             }
         }
         catch (Exception e){
-            System.out.println("wrong username or password");
+            System.out.println("Client: Wrong username or password");
         }
         return false;
     }
 
     public boolean registerToServer(){
 
-        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), "salt".getBytes(), 10000, 512); //not good, use better salt!
+        String salt = auth.createNewUser(getUid());
+
+        if(salt == null){
+            return false;
+        }
+
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 10000, 512);
         System.out.println(hashedPass);
 
         try {
-            this.uuid = auth.register(getUid(), CryptoHelper.sha512Hash(password));
+            this.uuid = auth.setPassword(getUid(), hashedPass);
             if(uuid != null) {
                 return true;
             }
         }
         catch (Exception e){
-            System.out.println("wrong username or password");
+            System.out.println("Client: wrong username or password");
         }
         return false;
     }
@@ -94,6 +105,7 @@ public class client {
 //                Client.CryptoHelper.sha512Hash(name),
 //                Client.CryptoHelper.sha512Hash(password)
 //        };
+    //user identifier
     public String getUid(){
         return CryptoHelper.sha512Hash(name);
 
@@ -113,11 +125,11 @@ public class client {
 
         for(int i=0;i<separatedFrom.length;i++){
             if(separatedFrom[i].isBlank() && !separatedTo[i].isBlank()){
-                System.out.println("Dates need to have the same format");
+                System.out.println("Client: Dates need to have the same format");
                 return;
             }
             if(separatedTo[i].isBlank() && !separatedFrom[i].isBlank()){
-                System.out.println("Dates need to have the same format");
+                System.out.println("Client: Dates need to have the same format");
                 return;
             }
         }
@@ -162,12 +174,12 @@ public class client {
             filesDownloaded += searchForWord(value);
         }
 
-        System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
+        System.out.println("Client: Downloaded " + filesDownloaded + " files from " + getName());
     }
 
     public void search(String searchWord){
         int filesDownloaded = searchForWord(searchWord);
-        System.out.println("Downloaded " + filesDownloaded + " files from " + getName());
+        System.out.println("Client: Downloaded " + filesDownloaded + " files from " + getName());
     }
 
     private int searchForWord(String searchWord){
@@ -280,6 +292,18 @@ public class client {
         return Tw;
     }
 
+    public BigInteger[] codeWord(BigInteger[] tw, String Did){
+        BigInteger[] cw = new BigInteger[tw.length];
+
+        for (int i = 0; i < tw.length; i++) {
+            byte[] yiByte = CryptoHelper.calculateHMAC(Did.getBytes(), tw[i].toByteArray());
+            BigInteger yi = new BigInteger(yiByte);
+            cw[i] = yi;
+        }
+
+        return cw;
+    }
+
     public File encryptFile(File file){
         String newFileName = file.getName();
         try {
@@ -315,13 +339,16 @@ public class client {
 
         File encrypted = encryptFile(file);
 
+        /*
         File bloomFilterNewName = new File(tmpFolder + encrypted.getName() + ".bf");
         try{
             Files.move(bloomFilter.toPath(), bloomFilterNewName.toPath());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        auth.upload(getUid(), uuid, encrypted, bloomFilterNewName);
+
+         */
+        auth.upload(getUid(), uuid, encrypted, bloomFilter);
 
     }
 
@@ -383,12 +410,20 @@ public class client {
     }
 
     public File buildIndexWordsProvided(File file, int u, String[] words){
-        String Did = file.getName() + ".bf";
+        String newFileName = file.getName();
+        try {
+            newFileName = CryptoHelper.encryptString(file.getName(), secretKeySpec, iv);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        String Did = newFileName + ".bf";
         Set<BigInteger> bloomFilter = new HashSet<>();
 
         for(String word : words){
             BigInteger[] Tw = trapdoor(word);
-            bloomFilter.addAll(Arrays.asList(Tw));
+            BigInteger[] Cw = codeWord(Tw, newFileName);
+            bloomFilter.addAll(Arrays.asList(Cw));
         }
 
         //(upperbound u - unique words v) * number of hashes r

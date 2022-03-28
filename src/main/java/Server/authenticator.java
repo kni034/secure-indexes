@@ -2,6 +2,7 @@ package Server;
 
 import java.io.File;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -11,6 +12,8 @@ public class authenticator extends Thread {
     private DB database;
     private String userID;
     private UUID uuid;
+
+
 
     public authenticator(server server){
         this.server = server;
@@ -24,19 +27,37 @@ public class authenticator extends Thread {
 
     }
 
-    public UUID register(String userID, String password){
-
+    //register 1
+    public String createNewUser(String userID){
+        String saltString = null;
         try {
-            if (!DB.clientExists(userID)) {
-                createNewUser(userID, password);
-            }
-            else {
-                System.out.println("Username already in use");
+            if(DB.clientExists(userID)){
+                System.out.println("Authenticator: user exits");
                 return null;
+            }else {
+
+                SecureRandom random = new SecureRandom();
+                byte[] salt = new byte[16];
+                random.nextBytes(salt);
+                saltString = salt.toString();
+                DB.addClient(userID, saltString);
+                server.createUser(userID);
             }
-        }
-        catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
+        }
+        return saltString;
+    }
+
+    //register 2
+    public UUID setPassword(String userID, String password){
+
+        if (DB.setPassword(userID, password)) {
+            System.out.println("Authenticator: User Created");
+        }
+        else {
+            System.out.println("Authenticator: Error finalizing new user");
+            return null;
         }
 
         if(DB.login(userID, password)){
@@ -44,15 +65,27 @@ public class authenticator extends Thread {
             this.uuid = uuid;
             this.userID = userID;
 
-            System.out.println("New user registered");
             return uuid;
         }else{
-            System.out.println("Unknown error, wrong password when creating user?!?");
+            System.out.println("(debug)Authenticator: Unknown error, wrong password when creating user?!?");
         }
 
         return null;
     }
 
+    //login 1
+    public String getSalt(String userID){
+        String salt = DB.getSalt(userID);
+        if(salt != null){
+            return salt;
+        }
+        else{
+            System.out.println("(debug)Authenticator: User does not exist");
+        }
+        return null;
+    }
+
+    //login 2
     public UUID login(String userID, String password){
 
         if(DB.login(userID, password)){
@@ -60,36 +93,28 @@ public class authenticator extends Thread {
             this.uuid = uuid;
             this.userID = userID;
 
-            System.out.println("Login successful");
+            System.out.println("Authenticator: Login successful");
             return uuid;
         }else{
-            System.out.println("Wrong username or password");
+            System.out.println("Authenticator: Wrong username or password");
         }
 
         return null;
     }
 
-    public void createNewUser(String userID, String password){
-        try {
-            if(DB.clientExists(userID)){
-                System.out.println("user exits");
-            }else {
-                DB.addClient(userID, password);
-                server.createUser(userID);
-                System.out.println("user created");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
 
-    public void upload(String userID, UUID uuid, File file, File bloomFilter){
+    public boolean upload(String userID, UUID uuid, File file, File bloomFilter){
+        if(uuid == null){
+            System.out.println("Authenticator: User not logged in");
+            return false;
+        }
         if(this.uuid.equals(uuid)){
             server.upload(userID, file, bloomFilter);
+            return true;
         }
-        else{
-            System.out.println("User not logged in");
-        }
+
+        System.out.println("Authenticator: User not logged in");
+        return false;
     }
 
 
@@ -98,7 +123,7 @@ public class authenticator extends Thread {
             return server.searchAllFiles(userID, trapdoor);
         }
         else {
-            System.out.println("no");
+            System.out.println("Authenticator: Cannot search, user not logged in");
         }
         return null;
     }
@@ -115,7 +140,7 @@ public class authenticator extends Thread {
         return server.getUpperbound();
     }
 
-    //midlertidig
+    //midlertidig TODO: slett
     public server getServer(){
         return server;
     }

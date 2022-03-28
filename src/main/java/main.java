@@ -4,6 +4,7 @@ import Server.authenticator;
 import Server.server;
 
 import java.io.File;
+import java.sql.SQLOutput;
 import java.util.UUID;
 
 public class main {
@@ -29,7 +30,7 @@ public class main {
         //Client.client daisy = new Client.client("Daisy", "kjempebra", Server.server.getS(), Server.server.getR());
 
         //File f = new File(dir + "/IMG_2099.HEIC");
-        alice.registerToServer();
+        //alice.registerToServer();
         alice.loginToServer();
 
         //uploadProtocol(alice, f);
@@ -42,7 +43,7 @@ public class main {
 
         //alice.rangeSearch(Server.server, "d01m01y2013", "d17m07y2014");
 
-        //searchProtocol(alice, Server.server, "pond");
+        searchProtocol(alice, "pond");
 
     }
 
@@ -67,11 +68,16 @@ public class main {
     marineholmenp-sone, thormøhlensgate, møhlenpris, bergenhus, bergen, vestland, 5058, norway, y2017, m09, d25, monday, d25m09y2017, m09y2017, d25m09, høst, autumn, pond.jpg, pond
      */
     public static void searchProtocol(client client, String searchWord){
-
+        if(!client.loginToServer()){
+            return;
+        }
         client.search(searchWord);
     }
 
     public static void uploadAll(client client){
+        if(!client.loginToServer()){
+            return;
+        }
         File dir = new File(path + "/allImages/");
         int i = 0;
         for(File f: dir.listFiles()){

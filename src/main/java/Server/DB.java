@@ -36,9 +36,8 @@ public class DB {
                         + "     id integer PRIMARY KEY AUTOINCREMENT, \n"
                         + "     userID varchar(512) UNIQUE NOT NULL,\n"
                         + "     password varchar(512),\n"
-                        + "     directory varchar(512)\n"
+                        + "     salt varchar(512),\n"
                         + ");";
-        //try(Connection con = DriverManager.getConnection(url);
         Connection con = connect();
         Statement stmt = con.createStatement();
         stmt.execute(sql);
@@ -48,16 +47,16 @@ public class DB {
     public static boolean clientExists(String userID) throws SQLException{
         String query = "SELECT *"
                 + "FROM clients "
-                + "WHERE userID = '" + userID
-                +"'";
+                + "WHERE userID = ?";
         Connection con = connect();
-        Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery(query);
+        PreparedStatement ps = con.prepareStatement(query);
+        ps.setString(1, userID);
+        ResultSet rs = ps.executeQuery(query);
         con.close();
         return rs.next();
     }
 
-    public static void addClient(String userID, String passwd){
+    public static void addClient(String userID, String salt){
         String dir = "/"+userID+"/";
         try {
             String query = "INSERT INTO clients(userID,password,directory)"
@@ -65,8 +64,8 @@ public class DB {
             Connection con = connect();
             PreparedStatement ps = con.prepareStatement(query);
             ps.setString(1, userID);
-            ps.setString(2, passwd);
-            ps.setString(3, dir);
+            ps.setString(2, null);
+            ps.setString(3, salt);
             ps.executeUpdate();
             con.close();
         }
@@ -76,11 +75,48 @@ public class DB {
 
     }
 
+    public static boolean setPassword(String userID, String password){
+        String query =
+                "UPDATE clients "
+                + "Set password = ? " +
+                        "WHERE userid = ?";
+        Connection con = connect();
+        try(PreparedStatement ps = con.prepareStatement(query)){
+            ps.setString(1,userID);
+            ps.setString(2,password);
+            ResultSet rs = ps.executeQuery();
+            con.close();
+            return rs.next();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static String getSalt(String userID){
+        String query =
+                "SELECT salt "
+                        + "FROM clients  WHERE userID = ?";
+        Connection con = connect();
+        try(PreparedStatement ps = con.prepareStatement(query)){
+            ps.setString(1,userID);
+            ResultSet rs = ps.executeQuery();
+            con.close();
+            return rs.getString(0);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
     public static boolean login(String userID, String password){
         String query =
-                "select * "
-                        + "from clients  where userID = ?"
-                        + "and password = ?";
+                "SELECT * "
+                        + "FROM clients  WHERE userID = ?"
+                        + "AND password = ?";
         Connection con = connect();
         try(PreparedStatement ps = con.prepareStatement(query)){
             ps.setString(1,userID);
