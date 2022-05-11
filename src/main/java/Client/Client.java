@@ -1,5 +1,6 @@
 package Client;
 
+import Server.Server;
 import Server.authenticator;
 
 import javax.crypto.spec.IvParameterSpec;
@@ -60,8 +61,8 @@ public class Client {
             System.out.println("Client: Wrong username or password");
         }
 
-        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 10000, 512);
-        System.out.println(hashedPass);
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 120000, 512);
+        //System.out.println(hashedPass);
 
         try {
             this.uuid = auth.login(getUid(), hashedPass);
@@ -192,7 +193,7 @@ public class Client {
 
 
 
-            //TODO: find solution?
+
             //Error check does not work for extra words
             /*
             if(!checkError(searchWord, dec)){
@@ -335,6 +336,7 @@ public class Client {
     }
 
     public void upload(File file, String[] extraWords){
+
         File bloomFilter = buildIndex(file, extraWords, auth.getUpperbound());
 
         File encrypted = encryptFile(file);
@@ -352,7 +354,7 @@ public class Client {
 
     }
 
-    /* Support for txt format
+    //used for testing basic version of scheme
     private String[] readWords(File file){
         ArrayList<String> allWords = new ArrayList<>(); //remove duplicates
 
@@ -377,7 +379,6 @@ public class Client {
         words = allWords.toArray(words);
         return words;
     }
-     */
 
     public String formatSearchWord(String word){
         word = word.replaceAll(" ", "");
@@ -388,6 +389,7 @@ public class Client {
     public File buildIndex(File file, String[] extraWords, int u){
         ArrayList<String> allWords = new ArrayList<>();
         String[] words = getWords(file);
+        System.out.println(Arrays.toString(words));
 
         if(words.length != 0){
             for(String s: words){
@@ -403,10 +405,6 @@ public class Client {
         //System.out.println(Arrays.toString(words));
 
         return buildIndexWordsProvided(file, u, allWords.toArray(new String[0]));
-    }
-
-    public File buildIndex(File file, int u, String[] words){
-        return buildIndexWordsProvided(file, u, words);
     }
 
     public File buildIndexWordsProvided(File file, int u, String[] words){
@@ -513,6 +511,57 @@ public class Client {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean uploadTxt(File f){
+        String[] words = readWords(f);
+        Server server = auth.getServer();
+        File bloomfilter = buildIndexWordsProvided(f,server.getUpperbound(),words);
+        File encrypted = encryptFile(f);
+
+
+        server.createUser(getUid());
+        server.upload(getUid(),encrypted,bloomfilter);
+        return true;
+    }
+
+    public int searchTxt(String word){
+
+        BigInteger[] trapdoor = trapdoor(word);
+        Server server = auth.getServer();
+        File[] files = server.searchAllFiles(getUid(),trapdoor);
+
+        for(File f:files){
+            File dec = decryptFile(f);
+
+
+
+
+            //Error check does not work for extra words
+            /*
+            if(!checkError(searchWord, dec)){
+                System.out.println(dec.getName() + " was downloaded from a hash collision, it will be deleted");
+                dec.delete();
+                continue;
+            }
+
+             */
+
+            Path userPath = Paths.get(tmpFolder + "/clientStorage/" + getName());
+            Path originalPath = Paths.get(dec.getPath());
+
+            try {
+                Files.createDirectories(userPath);
+
+                Files.move(originalPath, userPath.resolve(originalPath.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return files.length;
+        //System.out.println("Downloaded " + files.length + " files from " + getName());
     }
 
 

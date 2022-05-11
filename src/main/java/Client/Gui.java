@@ -14,6 +14,7 @@ public class Gui{
 
     public Gui(authenticator auth){
         JFrame frame = new JFrame();
+        frame.setResizable(false);
 
         this.auth = auth;
         this.frame = frame;

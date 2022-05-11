@@ -1,4 +1,5 @@
 import Client.Client;
+import Client.Gui;
 import Server.authenticator;
 import Server.Server;
 
@@ -10,7 +11,7 @@ public class main {
     public static void main(String[]args){
         File dir = new File(path + "/allImages/");
 
-        Server server = new Server(512,3 , 50);
+        Server server = new Server(512,3 , 351);
         authenticator auth = new authenticator(server);
 
         //new Gui(auth);
@@ -19,14 +20,29 @@ public class main {
 
 
         Client alice = new Client("Alice","password", auth, server.getS(), server.getR());
+
+        long startTime = System.currentTimeMillis();
+
+        for(int i=0;i<10;i++){
+            uploadTxtTest(alice);
+        }
+
+
+        //searchTxtTest(alice,"to");
+        long endTime = System.currentTimeMillis();
+        System.out.println("That took " + (endTime - startTime)/10 + " milliseconds");
+
+
         //alice.setRecompute(true);
+        //alice.loginToServer();
 
 
         //Client bob = new Client("Bob", "12345",auth, server.getS(), server.getR());
         //Client.client connor = new Client.client("Connor", "Super secret password", Server.server.getS(), Server.server.getR());
         //Client.client daisy = new Client.client("Daisy", "kjempebra", Server.server.getS(), Server.server.getR());
 
-        //File f = new File(dir + "/IMG_2099.HEIC");
+        //File f = new File(dir + "/IMG_8598.JPG");
+        //File f = new File(dir + "/20210728_153031.jpg");
         //alice.registerToServer();
         //bob.registerToServer();
         //alice.loginToServer();
@@ -37,11 +53,11 @@ public class main {
         //searchProtocol(alice,"pond");
 
 
-        uploadAll(alice);
+        //uploadAll(alice);
 
         //alice.rangeSearch(Server.server, "d01m01y2013", "d17m07y2014");
 
-        searchProtocol(alice, "pond");
+        //searchProtocol(alice, "pond");
 
     }
 
@@ -78,6 +94,7 @@ public class main {
         }
         File dir = new File(path + "/allImages/");
         int i = 0;
+        //long startTime = System.currentTimeMillis();
         for(File f: dir.listFiles()){
             i++;
             /*
@@ -95,6 +112,31 @@ public class main {
 
 
         }
+        //long endTime = System.currentTimeMillis();
+        //System.out.println("That took " + (endTime - startTime) + " milliseconds");
+    }
+
+    public static void uploadTxtTest(Client client){
+        File dir = new File(path + "/allTexts/");
+        int i = 0;
+
+        for(File f: dir.listFiles()){
+            i++;
+
+            client.uploadTxt(f);
+            //System.out.println(f.getName() + Arrays.toString(places));
+            System.out.println(i + "/"+ dir.listFiles().length);
+
+
+        }
+
+    }
+
+    public static void searchTxtTest(Client client, String word){
+
+        int number_of_files = client.searchTxt(word);
+        System.out.println("downloaded " + number_of_files + " files");
+
     }
 
 }
