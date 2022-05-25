@@ -17,11 +17,13 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.stream.IntStream;
 
 public class Client {
     private final String name;
     private final String password;
-    private static final String tmpFolder = "./src/main/resources/";
+    private static String tmpFolder = "./src/main/resources/";
     private final BitSet[] Kpriv;
     private final int s;
     private final int r;
@@ -33,7 +35,8 @@ public class Client {
     private authenticator auth;
 
 
-    public Client(String name, String password, authenticator auth, int s, int r){
+    public Client(String name, String password, authenticator auth, int s, int r, File dir){
+        tmpFolder = dir.getAbsolutePath() + "/";
         this.auth = auth;
         this.name = name;
         this.password = password;
@@ -59,6 +62,7 @@ public class Client {
         String salt = auth.getSalt(getUid());
         if (salt == null){
             System.out.println("Client: Wrong username or password");
+            return false;
         }
 
         String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 120000, 512);
@@ -84,7 +88,7 @@ public class Client {
             return false;
         }
 
-        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 10000, 512);
+        String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 120000, 512);
         System.out.println(hashedPass);
 
         try {
@@ -102,10 +106,7 @@ public class Client {
     protected String getName(){
         return name;
     }
-//return new String[]{
-//                Client.CryptoHelper.sha512Hash(name),
-//                Client.CryptoHelper.sha512Hash(password)
-//        };
+
     //user identifier
     public String getUid(){
         return CryptoHelper.sha512Hash(name);
@@ -222,7 +223,7 @@ public class Client {
     }
 
     public BitSet[] keygen(int s, int r, String masterKey){
-        Random random = new Random(masterKey.hashCode());
+        SecureRandom random = new SecureRandom(masterKey.getBytes());
         BitSet[] Kpriv = new BitSet[r];
 
         for(int i=0;i<r;i++){
@@ -253,6 +254,8 @@ public class Client {
     private String[] getWords(File file) {
         String[] words;
 
+        //if recompute = true, the program will generate new keywords from api
+        //even though there exists a precomputed set of words for the file
         if (recompute) {
             ImageProcessor ip = new ImageProcessor();
             words = ip.readMetaData(file);
@@ -284,7 +287,9 @@ public class Client {
         //System.out.println(formattedWord);
 
         for (int i = 0; i < Kpriv.length; i++) {
-            byte[] xiByte = CryptoHelper.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
+            byte[] temp = CryptoHelper.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
+            byte[] xiByte = new byte[(s/8) - 0];
+            System.arraycopy(temp, 0, xiByte, 0, xiByte.length);
             BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
@@ -297,7 +302,9 @@ public class Client {
         BigInteger[] cw = new BigInteger[tw.length];
 
         for (int i = 0; i < tw.length; i++) {
-            byte[] yiByte = CryptoHelper.calculateHMAC(Did.getBytes(), tw[i].toByteArray());
+            byte[] temp = CryptoHelper.calculateHMAC(Did.getBytes(), tw[i].toByteArray());
+            byte[] yiByte = new byte[(s/8) - 0];
+            System.arraycopy(temp, 0, yiByte, 0, yiByte.length);
             BigInteger yi = new BigInteger(yiByte);
             cw[i] = yi;
         }
@@ -341,17 +348,7 @@ public class Client {
 
         File encrypted = encryptFile(file);
 
-        /*
-        File bloomFilterNewName = new File(tmpFolder + encrypted.getName() + ".bf");
-        try{
-            Files.move(bloomFilter.toPath(), bloomFilterNewName.toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-         */
         auth.upload(getUid(), uuid, encrypted, bloomFilter);
-
     }
 
     //used for testing basic version of scheme
@@ -389,7 +386,7 @@ public class Client {
     public File buildIndex(File file, String[] extraWords, int u){
         ArrayList<String> allWords = new ArrayList<>();
         String[] words = getWords(file);
-        System.out.println(Arrays.toString(words));
+        System.out.println("Keywords for " + file.getName() +": " +Arrays.toString(words));
 
         if(words.length != 0){
             for(String s: words){
@@ -431,7 +428,9 @@ public class Client {
             SecureRandom random = new SecureRandom();
             try {
                 random.nextBytes(bytes);
-                byte[] randomHash = CryptoHelper.calculateHash(bytes);
+                byte[] temp = CryptoHelper.calculateHash(bytes);
+                byte[] randomHash = new byte[(s/8) - 0];
+                System.arraycopy(temp, 0, randomHash, 0, randomHash.length);
                 bloomFilter.add(new BigInteger(randomHash));
 
             } catch (NoSuchAlgorithmException e) {
@@ -533,19 +532,6 @@ public class Client {
 
         for(File f:files){
             File dec = decryptFile(f);
-
-
-
-
-            //Error check does not work for extra words
-            /*
-            if(!checkError(searchWord, dec)){
-                System.out.println(dec.getName() + " was downloaded from a hash collision, it will be deleted");
-                dec.delete();
-                continue;
-            }
-
-             */
 
             Path userPath = Paths.get(tmpFolder + "/clientStorage/" + getName());
             Path originalPath = Paths.get(dec.getPath());

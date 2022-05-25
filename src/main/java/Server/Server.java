@@ -11,12 +11,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class Server {
-    private static final String path = "./src/main/resources/serverStorage/";
+    private static String path = "./src/main/resources/serverStorage/";
     private int upperbound;
     private int s;
     private int r;
 
-    public Server(int s, int r, int upperbound){
+    public Server(int s, int r, int upperbound, File dir){
+        path = dir.getAbsolutePath() + "/serverStorage/";
         this.s = s;
         this.r = r;
         this.upperbound = upperbound;

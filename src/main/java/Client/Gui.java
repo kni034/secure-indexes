@@ -12,7 +12,10 @@ public class Gui{
     private final authenticator auth;
     private final JFrame frame;
 
-    public Gui(authenticator auth){
+    private final File path;
+
+    public Gui(authenticator auth, File dir){
+        this.path = dir;
         JFrame frame = new JFrame();
         frame.setResizable(false);
 
@@ -86,7 +89,7 @@ public class Gui{
                 frame.pack();
                 return;
             }
-            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR(), path);
             if(client.loginToServer()){
                 frame.remove(mainLoginPnl);
                 frame.repaint();
@@ -95,7 +98,6 @@ public class Gui{
             else {
                 outputLbl.setText("Wrong username or password");
                 frame.pack();
-                return;
             }
 
         });
@@ -112,7 +114,7 @@ public class Gui{
                 frame.pack();
                 return;
             }
-            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR());
+            Client client = new Client(nameFld.getText(), new String(passwordFld.getPassword()), auth, auth.getS(), auth.getR(), path);
             if(client.registerToServer()){
                 frame.remove(mainLoginPnl);
                 frame.repaint();
@@ -121,7 +123,6 @@ public class Gui{
             else {
                 outputLbl.setText("Username already in use");
                 frame.pack();
-                return;
             }
         });
 
@@ -245,7 +246,7 @@ public class Gui{
         JLabel uploadTextLbl = new JLabel("Or upload file(s): ");
         fourthSectionPnl.add(uploadTextLbl);
 
-        JFileChooser fileChooser = new JFileChooser(new File("./src/main/resources/allImages/"));
+        JFileChooser fileChooser = new JFileChooser(new File(path.getAbsolutePath()));
         fileChooser.setMultiSelectionEnabled(true);
 
         JCheckBox extraWordsChb = new JCheckBox("Add extra words");

@@ -2,14 +2,18 @@ package Server;
 
 import com.google.api.gax.core.ExecutorAsBackgroundResource;
 
+import java.io.File;
 import java.sql.*;
 import java.util.concurrent.ExecutionException;
 
 public class DB {
 
-    private static final String dbLocation = "jdbc:sqlite:./src/main/resources/serverStorage/users.db";
+    private static String dbLocation = "jdbc:sqlite:./src/main/resources/serverStorage/users.db";
 
-    public DB(){
+    public DB(File dir){
+
+        dbLocation = "jdbc:sqlite:" + dir.getAbsolutePath() + "/serverStorage/users.db";
+
         try (Connection con = connect()) {
             if (con != null) {
                 DatabaseMetaData meta = con.getMetaData();
@@ -44,16 +48,22 @@ public class DB {
         con.close();
     }
 
-    public boolean clientExists(String userID) throws SQLException{
-        String query = "SELECT * "
-                + "FROM clients "
-                + "WHERE userID = ?";
-        Connection con = connect();
-        PreparedStatement ps = con.prepareStatement(query);
-        ps.setString(1, userID);
-        ResultSet rs = ps.executeQuery();
-        con.close();
-        return rs.next();
+    public boolean clientExists(String userID){
+        try {
+            String query = "SELECT * "
+                    + "FROM clients "
+                    + "WHERE userID = ?";
+            Connection con = connect();
+            PreparedStatement ps = con.prepareStatement(query);
+            ps.setString(1, userID);
+            ResultSet rs = ps.executeQuery();
+            con.close();
+            return rs.next();
+        }
+        catch (Exception e){
+
+        }
+        return false;
     }
 
     public void addClient(String userID, String salt){

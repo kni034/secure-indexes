@@ -368,7 +368,6 @@ public class ImageProcessor {
 
                 for (EntityAnnotation annotation : res.getLabelAnnotationsList()) {
 
-                    System.out.println("keyword: '" +annotation.getDescription() + "' score: " + annotation.getScore());
                     if(annotation.getScore() >= 0.7){
                         words.add(annotation.getDescription());
                     }

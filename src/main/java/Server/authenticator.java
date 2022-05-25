@@ -15,9 +15,9 @@ public class authenticator extends Thread {
 
 
 
-    public authenticator(Server server){
+    public authenticator(Server server, File dir){
         this.server = server;
-        this.database = new DB();
+        this.database = new DB(dir);
         try {
             database.createClientTable();
         }
@@ -30,21 +30,17 @@ public class authenticator extends Thread {
     //register 1
     public String createNewUser(String userID){
         String saltString = null;
-        try {
-            if(database.clientExists(userID)){
-                System.out.println("Authenticator: user exits");
-                return null;
-            }else {
+        if(database.clientExists(userID)){
+            System.out.println("Authenticator: user exits");
+            return null;
+        }else {
 
-                SecureRandom random = new SecureRandom();
-                byte[] salt = new byte[16];
-                random.nextBytes(salt);
-                saltString = salt.toString();
-                database.addClient(userID, saltString);
-                server.createUser(userID);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+            SecureRandom random = new SecureRandom();
+            byte[] salt = new byte[16];
+            random.nextBytes(salt);
+            saltString = salt.toString();
+            database.addClient(userID, saltString);
+            server.createUser(userID);
         }
         return saltString;
     }
@@ -75,13 +71,18 @@ public class authenticator extends Thread {
 
     //login 1
     public String getSalt(String userID){
-        String salt = database.getSalt(userID);
-        if(salt != null){
-            return salt;
+        if (database.clientExists(userID)){
+            String salt = database.getSalt(userID);
+
+            if(salt != null){
+                return salt;
+            }
+            else{
+                //System.out.println("(debug)Authenticator: User does not exist");
+            }
         }
-        else{
-            System.out.println("(debug)Authenticator: User does not exist");
-        }
+
+
         return null;
     }
 
