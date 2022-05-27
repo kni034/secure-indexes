@@ -3,7 +3,6 @@ package Server;
 import java.io.File;
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.sql.SQLException;
 import java.util.UUID;
 
 public class authenticator extends Thread {
@@ -62,8 +61,6 @@ public class authenticator extends Thread {
             this.userID = userID;
 
             return uuid;
-        }else{
-            System.out.println("(debug)Authenticator: Unknown error, wrong password when creating user?!?");
         }
 
         return null;
@@ -76,9 +73,6 @@ public class authenticator extends Thread {
 
             if(salt != null){
                 return salt;
-            }
-            else{
-                //System.out.println("(debug)Authenticator: User does not exist");
             }
         }
 
@@ -141,10 +135,10 @@ public class authenticator extends Thread {
         return server.getUpperbound();
     }
 
-    //midlertidig TODO: slett
-    public Server getServer(){
-        return server;
-    }
+    //used only for testing the basic version of secure indexes
+    //public Server getServer(){
+        //return server;
+    //}
 
 
 }

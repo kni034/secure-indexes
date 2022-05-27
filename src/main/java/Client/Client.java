@@ -18,7 +18,6 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 
 public class Client {
     private final String name;
@@ -66,7 +65,6 @@ public class Client {
         }
 
         String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 120000, 512);
-        //System.out.println(hashedPass);
 
         try {
             this.uuid = auth.login(getUid(), hashedPass);
@@ -89,7 +87,6 @@ public class Client {
         }
 
         String hashedPass = CryptoHelper.hashPassword(password.toCharArray(), salt.getBytes(), 120000, 512);
-        System.out.println(hashedPass);
 
         try {
             this.uuid = auth.setPassword(getUid(), hashedPass);
@@ -284,7 +281,6 @@ public class Client {
         BigInteger[] Tw = new BigInteger[Kpriv.length];
 
         String formattedWord = formatSearchWord(w);
-        //System.out.println(formattedWord);
 
         for (int i = 0; i < Kpriv.length; i++) {
             byte[] temp = CryptoHelper.calculateHMAC(formattedWord.getBytes(), Kpriv[i].toByteArray());
@@ -293,7 +289,6 @@ public class Client {
             BigInteger xi = new BigInteger(xiByte);
             Tw[i] = xi;
         }
-        //System.out.println(Arrays.toString(Tw));
 
         return Tw;
     }
@@ -399,7 +394,6 @@ public class Client {
                 allWords.add(s);
             }
         }
-        //System.out.println(Arrays.toString(words));
 
         return buildIndexWordsProvided(file, u, allWords.toArray(new String[0]));
     }
@@ -437,8 +431,6 @@ public class Client {
                 e.printStackTrace();
             }
         }
-
-        //System.out.println(Arrays.toString(bloomFilter.toArray()));
 
         File f = new File(tmpFolder + Did);
         ObjectOutputStream outputStream;
@@ -482,7 +474,7 @@ public class Client {
         } catch(Exception e) {
 
         }
-        return new HashMap<String, String[]>();
+        return new HashMap<>();
     }
 
 
@@ -547,7 +539,6 @@ public class Client {
             }
         }
         return files.length;
-        //System.out.println("Downloaded " + files.length + " files from " + getName());
     }
 
 

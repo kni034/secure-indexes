@@ -1,14 +1,12 @@
-import Client.Client;
 import Client.Gui;
 import Server.authenticator;
 import Server.Server;
 
 import javax.swing.*;
 import java.io.File;
-import java.security.SecureRandom;
 import java.util.Scanner;
 
-public class main {
+public class Main {
     private static final String path = "./src/main/resources/";
     private static int s = 512;
     private static int r = 3;

@@ -113,7 +113,7 @@ public class Server {
         return cw;
     }
 
-    //download
+
     public File[] searchAllFiles(String userID, BigInteger[] trapdoor){
         String userPath = path + userID;
         File userDir = new File(userPath);

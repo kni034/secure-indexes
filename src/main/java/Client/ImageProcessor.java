@@ -48,7 +48,7 @@ public class ImageProcessor {
             metadata = ImageMetadataReader.readMetadata(f);
         }
         catch(Exception e){
-            System.out.println("feil med bilde" + f.getName());
+            System.out.println("Cannot read metadata for file: " + f.getName());
             e.printStackTrace();
         }
 
