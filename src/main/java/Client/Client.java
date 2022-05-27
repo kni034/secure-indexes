@@ -504,6 +504,9 @@ public class Client {
         }
     }
 
+
+    //used for testing basic version of secure indexes
+    /*
     public boolean uploadTxt(File f){
         String[] words = readWords(f);
         Server server = auth.getServer();
@@ -540,6 +543,8 @@ public class Client {
         }
         return files.length;
     }
+
+     */
 
 
 }
